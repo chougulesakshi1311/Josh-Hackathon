@@ -1,0 +1,23 @@
+﻿# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.class
+
+# Virtual environments
+venv/
+env/
+.env
+.venv
+
+# IDEs
+.vscode/
+.idea/
+
+# Datasets / ML Models
+*.csv
+*.pkl
+*.h5
+*.model
+
+# macOS
+.DS_Store

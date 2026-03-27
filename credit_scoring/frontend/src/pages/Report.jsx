@@ -1,4 +1,4 @@
-import { useLocation, Link } from 'react-router-dom'
+﻿import { useLocation, Link } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Navbar from '../components/Navbar'
 
@@ -104,12 +104,12 @@ export default function Report() {
               </div>
             </div>
 
-            <div className={`md:col-span-2 ${ds.bg} p-8 rounded-xl flex flex-col justify-center border ${ds.border}`}>
+            <div className={"md:col-span-2  p-8 rounded-xl flex flex-col justify-center border "}>
               <div className="flex items-center gap-3 mb-4">
-                <div className={`w-10 h-10 rounded-full ${ds.iconBg} flex items-center justify-center ${ds.iconColor}`}>
+                <div className={"w-10 h-10 rounded-full  flex items-center justify-center "}>
                   <span className="material-symbols-outlined">{ds.icon}</span>
                 </div>
-                <h3 className={`font-headline text-2xl font-bold ${ds.textColor}`}>{result.decision}</h3>
+                <h3 className={"font-headline text-2xl font-bold "}>{result.decision}</h3>
               </div>
               <p className="text-on-surface-variant text-sm leading-relaxed italic">
                 AI confidence scoring analysis performed based on the provided financial parameters.
@@ -136,14 +136,16 @@ export default function Report() {
               <h3 className="font-headline text-lg font-bold text-on-background">Applicant Summary</h3>
             </div>
             <div className="bg-surface-container-low rounded-xl overflow-hidden">
-              <div className="grid grid-cols-2 gap-px bg-outline-variant/10">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-outline-variant/10">
                 {[
-                  ['Entity Type', 'Individual / Retail'],
+                  ['Age', formData.age],
                   ['Annual Income', `$${formData.income.toLocaleString()}`],
-                  ['Employment Type', formData.employment_type.charAt(0).toUpperCase() + formData.employment_type.slice(1)],
+                  ['Employment Type', formData.employment_type],
+                  ['Education', formData.education_level],
                   ['Initial Credit Score', formData.credit_score_input],
                   ['Requested Amount', `$${formData.loan_amount.toLocaleString()}`],
-                  ['Existing Debt', `$${formData.existing_debt.toLocaleString()}`],
+                  ['Existing Debt', formData.existing_debt ? `$${formData.existing_debt.toLocaleString()}` : '$0'],
+                  ['Location Type', formData.zip_code_group],
                 ].map(([label, value]) => (
                   <div key={label} className="p-4 bg-surface-container-low">
                     <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">{label}</p>
@@ -164,7 +166,7 @@ export default function Report() {
               {result.explanations.map((exp, i) => (
                 <div key={i} className="flex gap-6 items-start">
                   <div className="flex-shrink-0 w-12 text-center">
-                    <p className={`text-lg font-bold ${i % 2 === 0 ? 'text-secondary' : 'text-error'}`}>
+                    <p className={"text-lg font-bold "}>
                       {i % 2 === 0 ? '+' : '−'}
                     </p>
                     <p className="text-[8px] font-bold text-on-surface-variant uppercase">Impact</p>
@@ -180,6 +182,29 @@ export default function Report() {
             </div>
           </section>
 
+          {/* Counterfactuals */}
+          {result.counterfactuals && result.counterfactuals.length > 0 && (
+            <section className="mb-12">
+              <div className="flex items-center gap-2 mb-6">
+                <span className="w-1 h-5 bg-tertiary rounded-full" />
+                <h3 className="font-headline text-lg font-bold text-on-background">Path to Approval</h3>
+              </div>
+              <div className="bg-tertiary-container/30 border border-tertiary-container/50 rounded-xl p-6">
+                <p className="text-sm text-on-surface-variant mb-4">
+                  Our alternative reasoning engine suggests the following realistic changes to qualify for approval:
+                </p>
+                <ul className="space-y-4">
+                  {result.counterfactuals.map((cf, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <span className="material-symbols-outlined text-tertiary mt-0.5 text-sm">track_changes</span>
+                      <p className="text-sm font-medium text-on-surface">{cf}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          )}
+
           {/* Charts */}
           <section className="mb-8">
             <div className="flex items-center gap-2 mb-6">
@@ -193,8 +218,9 @@ export default function Report() {
                   Feature Weight Distribution
                 </p>
                 <div className="space-y-3">
-                  {Object.entries(result.feature_importance)
+                  {Object.entries(result.feature_importance || {})
                     .sort(([, a], [, b]) => Math.abs(b) - Math.abs(a))
+                    .slice(0, 10)
                     .map(([feat, val]) => {
                       const pct = Math.min(Math.abs(val) * 300, 100) // Scale the SHAP val for visualization
                       return (
@@ -246,25 +272,6 @@ export default function Report() {
               </div>
             </div>
           </section>
-
-          {/* Footer */}
-          <div className="mt-16 pt-8 border-t border-surface-container-high flex justify-between items-end">
-            <div className="space-y-4">
-              <div className="h-10 w-40 bg-surface-container-low flex items-center justify-center border-b-2 border-on-surface">
-                <p className="font-headline text-sm italic opacity-40">Digital Signature AI-91</p>
-              </div>
-              <p className="text-[10px] text-on-surface-variant max-w-xs leading-tight">
-                This report is generated by Credit AI Systems. The explanation provided meets the
-                requirements of the Fair Credit Reporting Act (FCRA).
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-2xl font-headline font-extrabold text-primary">Credit AI</p>
-              <p className="text-[10px] font-bold text-on-surface-variant uppercase">
-                Confidential Compliance Doc
-              </p>
-            </div>
-          </div>
         </div>
       </main>
     </div>

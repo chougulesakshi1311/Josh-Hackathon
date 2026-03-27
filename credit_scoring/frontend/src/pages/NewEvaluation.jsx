@@ -1,20 +1,64 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Navbar from '../components/Navbar'
 import { predictCredit } from '../services/api'
 
 const EMPLOYMENT_OPTIONS = [
-  { value: 'full-time', label: 'Full-time Professional' },
-  { value: 'part-time', label: 'Part-time Employment' },
-  { value: 'freelance', label: 'Independent Freelance' },
-  { value: 'unemployed', label: 'Currently Unemployed' },
+  { value: 'Full-time', label: 'Full-time Professional' },
+  { value: 'Part-time', label: 'Part-time Employment' },
+  { value: 'Self-employed', label: 'Independent Freelance / Self-employed' },
+  { value: 'Unemployed', label: 'Currently Unemployed' },
+  { value: 'Gig', label: 'Gig Worker' },
+]
+
+const EDUCATION_OPTIONS = [
+  { value: 'High School', label: 'High School' },
+  { value: 'Some College', label: 'Some College' },
+  { value: 'Bachelor\'s', label: 'Bachelor\'s Degree' },
+  { value: 'Graduate', label: 'Graduate Degree' },
+]
+
+const GENDER_OPTIONS = [
+  { value: 'Male', label: 'Male' },
+  { value: 'Female', label: 'Female' },
+  { value: 'Non-binary', label: 'Non-binary' },
+]
+
+const RACE_OPTIONS = [
+  { value: 'White', label: 'White' },
+  { value: 'Black', label: 'Black' },
+  { value: 'Hispanic', label: 'Hispanic' },
+  { value: 'Asian', label: 'Asian' },
+  { value: 'Native American', label: 'Native American' },
+  { value: 'Multiracial', label: 'Multiracial' },
+]
+
+const CITIZENSHIP_OPTIONS = [
+  { value: 'Citizen', label: 'Citizen' },
+  { value: 'Permanent Resident', label: 'Permanent Resident' },
+  { value: 'Visa Holder', label: 'Visa Holder' },
+]
+
+const LOCATION_OPTIONS = [
+  { value: 'Urban Professional', label: 'Urban Professional' },
+  { value: 'High-income Suburban', label: 'High-income Suburban' },
+  { value: 'Working Class Urban', label: 'Working Class Urban' },
+  { value: 'Rural', label: 'Rural' },
+  { value: 'Historically Redlined', label: 'Historically Redlined' },
 ]
 
 const DEFAULT_FORM = {
   age: '',
   income: '',
-  employment_type: 'full-time',
+  employment_type: 'Full-time',
+  education_level: 'Bachelor\'s',
+  gender: 'Male',
+  race: 'White',
+  citizenship_status: 'Citizen',
+  criminal_record: false,
+  disability_status: false,
+  zip_code_group: 'Urban Professional',
   loan_amount: '',
   existing_debt: '',
   credit_score_input: 720,
@@ -27,8 +71,8 @@ export default function NewEvaluation() {
   const navigate = useNavigate()
 
   const handleChange = (e) => {
-    const { name, value } = e.target
-    setForm((f) => ({ ...f, [name]: value }))
+    const { name, value, type, checked } = e.target
+    setForm((f) => ({ ...f, [name]: type === 'checkbox' ? checked : value }))
     setError('')
   }
 
@@ -41,15 +85,22 @@ export default function NewEvaluation() {
         age: Number(form.age),
         income: Number(String(form.income).replace(/,/g, '')),
         employment_type: form.employment_type,
+        education_level: form.education_level,
+        gender: form.gender,
+        race: form.race,
+        citizenship_status: form.citizenship_status,
+        criminal_record: form.criminal_record,
+        disability_status: form.disability_status,
+        zip_code_group: form.zip_code_group,
         loan_amount: Number(String(form.loan_amount).replace(/,/g, '')),
         existing_debt: Number(String(form.existing_debt).replace(/,/g, '')),
         credit_score_input: Number(form.credit_score_input),
       }
       const data = await predictCredit(payload)
-      
-      // Store result and form data in localStorage or state, then navigate to /report 
+
+      // Store result and form data in state, then navigate to /report
       navigate('/report', { state: { result: data, formData: payload } })
-      
+
     } catch (err) {
       setError(err.message)
     } finally {
@@ -108,20 +159,74 @@ export default function NewEvaluation() {
                 </div>
               </section>
 
-              {/* Employment */}
+              {/* Demographics (For Fairness) */}
               <section>
                 <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant/60 mb-6 font-label">
-                  Employment Metrics
+                  Demographics & Location
                 </h3>
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-on-surface font-label ml-1">
-                    Employment Type
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-on-surface font-label ml-1">Gender</label>
+                    <select name="gender" value={form.gender} onChange={handleChange} className="w-full bg-surface border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary/20 transition-all font-body outline-none appearance-none">
+                      {GENDER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-on-surface font-label ml-1">Race / Ethnicity</label>
+                    <select name="race" value={form.race} onChange={handleChange} className="w-full bg-surface border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary/20 transition-all font-body outline-none appearance-none">
+                      {RACE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-on-surface font-label ml-1">Citizenship</label>
+                    <select name="citizenship_status" value={form.citizenship_status} onChange={handleChange} className="w-full bg-surface border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary/20 transition-all font-body outline-none appearance-none">
+                      {CITIZENSHIP_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-on-surface font-label ml-1">Location Type</label>
+                    <select name="zip_code_group" value={form.zip_code_group} onChange={handleChange} className="w-full bg-surface border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary/20 transition-all font-body outline-none appearance-none">
+                      {LOCATION_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </section>
+
+              {/* Education & Employment */}
+              <section>
+                <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant/60 mb-6 font-label">
+                  Education & Employment
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-on-surface font-label ml-1">Education Level</label>
+                    <select name="education_level" value={form.education_level} onChange={handleChange} className="w-full bg-surface border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary/20 transition-all font-body outline-none appearance-none">
+                      {EDUCATION_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-on-surface font-label ml-1">Employment Type</label>
+                    <select name="employment_type" value={form.employment_type} onChange={handleChange} className="w-full bg-surface border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary/20 transition-all font-body outline-none appearance-none">
+                      {EMPLOYMENT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </section>
+
+              {/* Background Risk Factors */}
+              <section>
+                <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant/60 mb-6 font-label">
+                  Risk Assessment Flags
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <label className="flex items-center gap-3 p-3 bg-surface rounded-lg cursor-pointer">
+                    <input type="checkbox" name="criminal_record" checked={form.criminal_record} onChange={handleChange} className="w-5 h-5 accent-primary rounded" />
+                    <span className="text-sm font-semibold text-on-surface">Prior Criminal Record</span>
                   </label>
-                  <select name="employment_type" value={form.employment_type} onChange={handleChange} className="w-full bg-surface border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary/20 transition-all font-body outline-none appearance-none">
-                    {EMPLOYMENT_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>{o.label}</option>
-                    ))}
-                  </select>
+                  <label className="flex items-center gap-3 p-3 bg-surface rounded-lg cursor-pointer">
+                    <input type="checkbox" name="disability_status" checked={form.disability_status} onChange={handleChange} className="w-5 h-5 accent-primary rounded" />
+                    <span className="text-sm font-semibold text-on-surface">Disability Status (Optional test feature)</span>
+                  </label>
                 </div>
               </section>
 
