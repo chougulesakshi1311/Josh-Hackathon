@@ -6,7 +6,7 @@ const navItems = [
   { to: '/evaluation', icon: 'add_chart', label: 'New Evaluation' },
   { to: '/bias', icon: 'equalizer', label: 'Bias & Fairness' },
   { to: '/reports', icon: 'description', label: 'Reports' },
-  { to: '/settings', icon: 'settings', label: 'Settings' },
+  // { to: '/settings', icon: 'settings', label: 'Settings' },
 ]
 
 export default function Sidebar() {
@@ -49,13 +49,13 @@ export default function Sidebar() {
 
       {/* Footer links */}
       <div className="mt-auto space-y-1 pt-4 border-t border-outline-variant/10">
-        <a
+        {/* <a
           href="#"
           className="flex items-center gap-3 px-4 py-3 text-[#434656] dark:text-slate-400 hover:text-[#191c1d] hover:bg-[#e7e8e9] transition-colors rounded-lg font-headline text-sm font-semibold"
         >
           <span className="material-symbols-outlined">help</span>
           <span>Help Center</span>
-        </a>
+        </a> */}
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-3 text-[#434656] dark:text-slate-400 hover:text-[#191c1d] hover:bg-[#e7e8e9] transition-colors rounded-lg font-headline text-sm font-semibold"

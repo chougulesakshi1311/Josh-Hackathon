@@ -6,10 +6,10 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/auth': 'http://localhost:8000',
-      '/predict': 'http://localhost:8000',
-      '/dashboard': 'http://localhost:8000',
-      '/bias': 'http://localhost:8000',
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
     },
   },
 })

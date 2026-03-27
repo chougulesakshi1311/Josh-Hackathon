@@ -1,6 +1,8 @@
-﻿import { useLocation, Link } from 'react-router-dom'
+import { useLocation, Link } from 'react-router-dom'
+import { useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import Navbar from '../components/Navbar'
+import { predictCredit } from '../services/api'
 
 export default function Report() {
   const { state } = useLocation()
@@ -24,7 +26,24 @@ export default function Report() {
   }
 
   const { result, formData } = state
-  const score = result.credit_score
+  const [whatIfData, setWhatIfData] = useState(formData)
+  const [whatIfResult, setWhatIfResult] = useState(null)
+  const [isSimulating, setIsSimulating] = useState(false)
+
+  const handleSimulate = async () => {
+    setIsSimulating(true)
+    try {
+      const data = await predictCredit(whatIfData)
+      setWhatIfResult(data)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsSimulating(false)
+    }
+  }
+
+  const activeResult = whatIfResult || result
+  const score = activeResult.credit_score
   const scorePercent = ((score - 300) / 600) * 100
   const strokeDash = 364.4
   const strokeOffset = strokeDash - (strokeDash * scorePercent) / 100
@@ -35,7 +54,7 @@ export default function Report() {
     Rejected: { bg: 'bg-error-container/20', border: 'border-error-container/30', icon: 'cancel', iconBg: 'bg-error-container', iconColor: 'text-on-error-container', textColor: 'text-on-error-container' },
   }
 
-  const ds = decisionStyle[result.decision] || decisionStyle.Review
+  const ds = decisionStyle[activeResult.decision] || decisionStyle.Review
 
   return (
     <div className="bg-surface font-body text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
@@ -94,7 +113,7 @@ export default function Report() {
                 <svg className="w-32 h-32 transform -rotate-90">
                   <circle className="text-surface-container-high" cx="64" cy="64" fill="transparent" r="58" stroke="currentColor" strokeWidth="8" />
                   <circle
-                    className={result.decision === 'Rejected' ? 'text-error' : 'text-primary'}
+                    className={activeResult.decision === 'Rejected' ? 'text-error' : 'text-primary'}
                     cx="64" cy="64" fill="transparent" r="58"
                     stroke="currentColor" strokeDasharray={strokeDash} strokeDashoffset={strokeOffset} strokeWidth="8"
                     style={{ transition: 'stroke-dashoffset 1.5s ease' }}
@@ -109,20 +128,20 @@ export default function Report() {
                 <div className={"w-10 h-10 rounded-full  flex items-center justify-center "}>
                   <span className="material-symbols-outlined">{ds.icon}</span>
                 </div>
-                <h3 className={"font-headline text-2xl font-bold "}>{result.decision}</h3>
+                <h3 className={"font-headline text-2xl font-bold "}>{activeResult.decision}</h3>
               </div>
               <p className="text-on-surface-variant text-sm leading-relaxed italic">
                 AI confidence scoring analysis performed based on the provided financial parameters.
                 Result derived using continuous explainability engine models.
               </p>
               <div className="mt-6 flex gap-3 flex-wrap">
-                {result.decision === 'Approved' && (
+                {activeResult.decision === 'Approved' && (
                   <><span className="bg-secondary-container px-3 py-1 rounded-full text-[10px] font-bold text-on-secondary-container">Low Risk</span><span className="bg-surface-container-high px-3 py-1 rounded-full text-[10px] font-bold text-on-surface-variant">Standard Rate Apply</span></>
                 )}
-                {result.decision === 'Rejected' && (
+                {activeResult.decision === 'Rejected' && (
                   <span className="bg-error-container px-3 py-1 rounded-full text-[10px] font-bold text-on-error-container">High Risk</span>
                 )}
-                {result.decision === 'Review' && (
+                {activeResult.decision === 'Review' && (
                   <span className="bg-primary-fixed px-3 py-1 rounded-full text-[10px] font-bold text-primary">Manual Review Required</span>
                 )}
               </div>
@@ -163,7 +182,7 @@ export default function Report() {
               <h3 className="font-headline text-lg font-bold text-on-background">Explanation &amp; Impact</h3>
             </div>
             <div className="space-y-6">
-              {result.explanations.map((exp, i) => (
+              {activeResult.explanations.map((exp, i) => (
                 <div key={i} className="flex gap-6 items-start">
                   <div className="flex-shrink-0 w-12 text-center">
                     <p className={"text-lg font-bold "}>
@@ -183,7 +202,7 @@ export default function Report() {
           </section>
 
           {/* Counterfactuals */}
-          {result.counterfactuals && result.counterfactuals.length > 0 && (
+          {activeResult.counterfactuals && activeResult.counterfactuals.length > 0 && (
             <section className="mb-12">
               <div className="flex items-center gap-2 mb-6">
                 <span className="w-1 h-5 bg-tertiary rounded-full" />
@@ -194,13 +213,99 @@ export default function Report() {
                   Our alternative reasoning engine suggests the following realistic changes to qualify for approval:
                 </p>
                 <ul className="space-y-4">
-                  {result.counterfactuals.map((cf, i) => (
+                  {activeResult.counterfactuals.map((cf, i) => (
                     <li key={i} className="flex items-start gap-3">
                       <span className="material-symbols-outlined text-tertiary mt-0.5 text-sm">track_changes</span>
                       <p className="text-sm font-medium text-on-surface">{cf}</p>
                     </li>
                   ))}
                 </ul>
+              </div>
+            </section>
+          )}
+
+          {/* What-If Simulator */}
+          {(activeResult.decision === 'Rejected' || activeResult.decision === 'Review') && (
+            <section className="mb-12 no-print">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <span className="w-1 h-5 bg-secondary rounded-full" />
+                  <h3 className="font-headline text-lg font-bold text-on-background">What-If Simulator</h3>
+                </div>
+                {whatIfResult && (
+                  <button
+                    onClick={() => { setWhatIfData(formData); setWhatIfResult(null); }}
+                    className="text-xs font-bold text-primary hover:underline hover:text-primary-fixed transition-colors"
+                  >
+                    Reset to Original Result
+                  </button>
+                )}
+              </div>
+              
+              <div className="bg-surface-container-lowest border border-outline-variant/10 rounded-xl p-8 ambient-shadow relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-secondary/10 rounded-full blur-3xl -mr-10 -mt-20 pointer-events-none group-hover:scale-110 transition-transform duration-1000" />
+                
+                <p className="text-sm text-on-surface-variant mb-8 max-w-2xl relative z-10">
+                  Adjust the primary metrics below to simulate a new credit risk evaluation instantly. See exactly what outcomes would result from different scenarios.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
+                  <div className="space-y-4 bg-surface-container-low/50 p-4 rounded-xl border border-outline-variant/5">
+                    <label className="flex justify-between text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+                      <span>Target Income</span>
+                      <span className="text-secondary font-mono">${whatIfData.income.toLocaleString()}</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="10000" max="250000" step="5000"
+                      value={whatIfData.income}
+                      onChange={(e) => setWhatIfData({ ...whatIfData, income: Number(e.target.value) })}
+                      className="w-full h-2 bg-surface-container-high rounded-full appearance-none cursor-pointer accent-secondary"
+                    />
+                  </div>
+                  
+                  <div className="space-y-4 bg-surface-container-low/50 p-4 rounded-xl border border-outline-variant/5">
+                    <label className="flex justify-between text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+                      <span>Target Request</span>
+                      <span className="text-secondary font-mono">${whatIfData.loan_amount.toLocaleString()}</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="1000" max="500000" step="1000"
+                      value={whatIfData.loan_amount}
+                      onChange={(e) => setWhatIfData({ ...whatIfData, loan_amount: Number(e.target.value) })}
+                      className="w-full h-2 bg-surface-container-high rounded-full appearance-none cursor-pointer accent-secondary"
+                    />
+                  </div>
+
+                  <div className="space-y-4 bg-surface-container-low/50 p-4 rounded-xl border border-outline-variant/5">
+                    <label className="flex justify-between text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+                      <span>Target Score</span>
+                      <span className="text-secondary font-mono">{whatIfData.credit_score_input}</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="300" max="850" step="1"
+                      value={whatIfData.credit_score_input}
+                      onChange={(e) => setWhatIfData({ ...whatIfData, credit_score_input: Number(e.target.value) })}
+                      className="w-full h-2 bg-surface-container-high rounded-full appearance-none cursor-pointer accent-secondary"
+                    />
+                  </div>
+                </div>
+                
+                <div className="mt-8 flex justify-end relative z-10">
+                  <button
+                    onClick={handleSimulate}
+                    disabled={isSimulating}
+                    className="bg-secondary text-on-secondary px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:opacity-90 hover:scale-[1.02] active:scale-[0.98] transition-all font-headline text-sm shadow-xl shadow-secondary/20 disabled:opacity-60"
+                  >
+                    {isSimulating ? (
+                      <><span className="material-symbols-outlined animate-spin text-sm">autorenew</span> Simulating Model…</>
+                    ) : (
+                      <><span className="material-symbols-outlined text-sm">science</span> Run Scenario Analysis</>
+                    )}
+                  </button>
+                </div>
               </div>
             </section>
           )}
@@ -218,7 +323,7 @@ export default function Report() {
                   Feature Weight Distribution
                 </p>
                 <div className="space-y-3">
-                  {Object.entries(result.feature_importance || {})
+                  {Object.entries(activeResult.feature_importance || {})
                     .sort(([, a], [, b]) => Math.abs(b) - Math.abs(a))
                     .slice(0, 10)
                     .map(([feat, val]) => {

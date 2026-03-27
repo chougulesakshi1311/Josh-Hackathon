@@ -2,15 +2,17 @@
 main.py — FastAPI server entry point.
 Run with:  uvicorn main:app --reload --port 8000
 """
+import hashlib
 from contextlib import asynccontextmanager
 from typing import Any
 
 import pandas as pd
 import numpy as np
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException, Body, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 
+import db
 from schemas import ApplicantInput, PredictionResponse, BiasResponse, DashboardResponse
 import model as model_module
 import explainer as explainer_module
@@ -34,13 +36,16 @@ async def lifespan(app: FastAPI):
     global _fairness_cache, _dashboard_cache
 
     print("=" * 50)
-    print("[1/4] Loading model and encoders…")
+    print("[0/5] Initializing MongoDB…")
+    db.init_mongodb()
+    
+    print("[1/5] Loading model and encoders…")
     m = model_module.load_model()
     encoders = model_module.get_encoders()
     feature_names = model_module.get_feature_names()
     print(f"      Model loaded. Features: {feature_names}")
 
-    print("[2/4] Building SHAP explainer…")
+    print("[2/5] Building SHAP explainer…")
     try:
         X_test = pd.read_csv(BASE_DIR / "X_test.csv")
         explainer_module.build_explainer(m, X_test.values)
@@ -48,10 +53,10 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"      WARNING — SHAP build failed: {e}")
 
-    print("[3/4] Running fairness audit…")
+    print("[3/5] Running fairness audit…")
     _fairness_cache = fairness_module.run_audit(m, encoders, feature_names)
 
-    print("[4/4] Computing dashboard statistics…")
+    print("[4/5] Computing dashboard statistics…")
     _dashboard_cache = _compute_dashboard(m)
 
     print("=" * 50)
@@ -59,6 +64,7 @@ async def lifespan(app: FastAPI):
     print("=" * 50)
     yield
     # Cleanup (if needed) goes here
+    db.close_mongodb()
 
 
 def _compute_dashboard(model) -> dict:
@@ -115,33 +121,77 @@ app.add_middleware(
 # Routes
 # -------------------------------------------------------------------
 
-@app.get("/health")
+@app.get("/api/health")
 def health():
     return {"status": "ok", "model": "loaded"}
 
 
-@app.get("/dashboard", response_model=DashboardResponse)
+@app.get("/api/dashboard", response_model=DashboardResponse)
 def dashboard():
-    if _dashboard_cache is None:
-        raise HTTPException(status_code=503, detail="Dashboard not yet computed")
-    return _dashboard_cache
+    apps = db.get_all_applications(limit=10000)
+    
+    if not apps:
+        if _dashboard_cache is None:
+            raise HTTPException(status_code=503, detail="Dashboard not yet computed")
+        return _dashboard_cache
+        
+    total = len(apps)
+    approved = 0
+    rejected = 0
+    reviewed = 0
+    total_credit_score = 0
+    
+    for app in apps:
+        pred = app.get("prediction", {})
+        decision = pred.get("decision", "")
+        score = pred.get("credit_score", 0)
+        
+        if decision == "Approved":
+            approved += 1
+        elif decision == "Rejected":
+            rejected += 1
+        elif decision in ("Review", "Manual Review"):
+            reviewed += 1
+            
+        total_credit_score += score
+        
+    return {
+        "total_applications": total,
+        "approval_rate": round(approved / total * 100, 1) if total > 0 else 0.0,
+        "rejection_rate": round(rejected / total * 100, 1) if total > 0 else 0.0,
+        "review_rate": round(reviewed / total * 100, 1) if total > 0 else 0.0,
+        "avg_credit_score": round(total_credit_score / total) if total > 0 else 0.0,
+    }
 
 
-@app.get("/bias", response_model=BiasResponse)
+@app.get("/api/bias", response_model=BiasResponse)
 def bias():
     if _fairness_cache is None:
         raise HTTPException(status_code=503, detail="Fairness audit not yet computed")
     return _fairness_cache
 
 
-@app.post("/predict", response_model=PredictionResponse)
-def predict(applicant: ApplicantInput):
+@app.get("/api/history")
+def history(request: Request):
+    """Fetch evaluation history (returning all for demo purposes)."""
+    # By returning all applications, we ensure no reports are awkwardly hidden 
+    # if they were accidentally saved as anonymous or logged out.
+    return db.get_all_applications(limit=200)
+
+
+
+@app.post("/api/predict", response_model=PredictionResponse)
+def predict(applicant: ApplicantInput, request: Request):
     """
     Main prediction endpoint.
     Accepts applicant financial + demographic data.
     Returns: credit_score, decision, SHAP explanations, feature_importance, counterfactuals (if rejected).
+    Saves application to MongoDB.
     """
     try:
+        # Extract user email from X-User-Email header directly (easier for demo than strict JWT auth)
+        user_email = request.headers.get("X-User-Email", "anonymous")
+        
         m             = model_module.get_model()
         encoders      = model_module.get_encoders()
         feature_names = model_module.get_feature_names()
@@ -161,13 +211,22 @@ def predict(applicant: ApplicantInput):
         if decision == "Rejected":
             counterfactuals = cf_module.get_counterfactuals(applicant, score, prob)
 
-        return PredictionResponse(
+        response = PredictionResponse(
             credit_score=score,
             decision=decision,
             explanations=explanations,
             feature_importance=feature_importance,
             counterfactuals=counterfactuals,
         )
+        
+        # Save to MongoDB
+        db.save_application(
+            user_email=user_email,
+            input_data=applicant.dict(),
+            prediction=response.dict()
+        )
+        
+        return response
 
     except Exception as e:
         import traceback
@@ -179,16 +238,45 @@ def predict(applicant: ApplicantInput):
 # Auth stubs (demo — no real database)
 # -------------------------------------------------------------------
 
-@app.post("/auth/login")
+@app.post("/api/auth/login")
 def login(body: dict = Body(...)):
-    email = body.get("email", "user@demo.com")
-    return {"access_token": "demo-token", "email": email}
+    email = body.get("email", "").strip()
+    password = body.get("password", "").strip()
+    
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email and password required")
+    
+    user = db.get_user(email)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    pwd_hash = hashlib.sha256(password.encode()).hexdigest()
+    if user["password_hash"] != pwd_hash:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    db.update_user_login(email)
+    
+    token = hashlib.sha256(f"{email}|{pwd_hash}".encode()).hexdigest()
+    return {"access_token": token, "email": email}
 
 
-@app.post("/auth/signup")
+@app.post("/api/auth/signup")
 def signup(body: dict = Body(...)):
-    email = body.get("email", "user@demo.com")
-    return {"access_token": "demo-token", "email": email}
+    email = body.get("email", "").strip()
+    password = body.get("password", "").strip()
+    
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email and password required")
+    
+    pwd_hash = hashlib.sha256(password.encode()).hexdigest()
+    
+    try:
+        db.create_user(email, pwd_hash)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    
+    token = hashlib.sha256(f"{email}|{pwd_hash}".encode()).hexdigest()
+    return {"access_token": token, "email": email}
 
 
 # -------------------------------------------------------------------

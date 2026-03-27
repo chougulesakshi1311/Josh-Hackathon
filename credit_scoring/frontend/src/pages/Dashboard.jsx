@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import Navbar from '../components/Navbar'
-import { getDashboard } from '../services/api'
+import { getDashboard, getHistory } from '../services/api'
 
 export default function Dashboard() {
   const [data, setData] = useState(null)
+  const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    getDashboard()
-      .then(setData)
+    Promise.all([
+      getDashboard().then(setData),
+      getHistory().then(setHistory)
+    ])
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
   }, [])
@@ -22,6 +25,30 @@ export default function Dashboard() {
     rejection_rate: 0,
     review_rate: 0,
   }
+
+  const totalC = 251.2;
+  const reviewPct = stats.review_rate || 0;
+  const rejectPct = stats.rejection_rate || 0;
+  const approvePct = stats.approval_rate || 0;
+  
+  const offsetApprove = totalC * (1 - (reviewPct + rejectPct + approvePct) / 100);
+  const offsetReject = totalC * (1 - (reviewPct + rejectPct) / 100);
+  const offsetReview = totalC * (1 - (reviewPct) / 100);
+
+  const recentLogs = history.slice(0, 3).map((app, i) => {
+    const decision = app.prediction?.decision
+    const id = app._id?.slice(-4) || 'N/A'
+    let icon = 'history'; let color = 'text-primary-container'
+    if (decision === 'Approved') { icon = 'verified'; color = 'text-secondary' }
+    if (decision === 'Rejected') { icon = 'gavel'; color = 'text-error' }
+    
+    return {
+      id: app._id,
+      icon, color, 
+      title: `Case #${id} ${decision}`, 
+      desc: app.prediction?.explanations?.[0] || 'View full evaluation for details.'
+    }
+  })
 
   return (
     <div className="bg-surface font-body text-on-surface antialiased">
@@ -188,9 +215,9 @@ export default function Dashboard() {
                 <div className="relative w-48 h-48 mb-8">
                   <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                     <circle className="text-surface-container-low" cx="50" cy="50" fill="transparent" r="40" stroke="currentColor" strokeWidth="12" />
-                    <circle className="text-secondary" cx="50" cy="50" fill="transparent" r="40" stroke="currentColor" strokeDasharray="251.2" strokeDashoffset="80.38" strokeLinecap="round" strokeWidth="12" />
-                    <circle className="text-error" cx="50" cy="50" fill="transparent" r="40" stroke="currentColor" strokeDasharray="251.2" strokeDashoffset="195.9" strokeLinecap="round" strokeWidth="12" />
-                    <circle className="text-primary-fixed-dim" cx="50" cy="50" fill="transparent" r="40" stroke="currentColor" strokeDasharray="251.2" strokeDashoffset="226.08" strokeLinecap="round" strokeWidth="12" />
+                    <circle className="text-secondary" cx="50" cy="50" fill="transparent" r="40" stroke="currentColor" strokeDasharray="251.2" strokeDashoffset={offsetApprove} strokeLinecap="round" strokeWidth="12" />
+                    <circle className="text-error" cx="50" cy="50" fill="transparent" r="40" stroke="currentColor" strokeDasharray="251.2" strokeDashoffset={offsetReject} strokeLinecap="round" strokeWidth="12" />
+                    <circle className="text-primary-fixed-dim" cx="50" cy="50" fill="transparent" r="40" stroke="currentColor" strokeDasharray="251.2" strokeDashoffset={offsetReview} strokeLinecap="round" strokeWidth="12" />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-3xl font-extrabold font-headline leading-none">
@@ -220,22 +247,20 @@ export default function Dashboard() {
               <div className="bg-surface-container-lowest p-8 rounded-xl ambient-shadow">
                 <h4 className="text-xl font-bold font-headline mb-6">Explainability Logs</h4>
                 <div className="space-y-6">
-                  {[
-                    { icon: 'gavel', color: 'text-primary', title: 'Case #8842 Denied', desc: 'Impact: High debt-to-income ratio (42%). Secondary: Short credit history.' },
-                    { icon: 'verified', color: 'text-secondary', title: 'Case #8845 Approved', desc: 'Impact: Clean payment history (10yrs). Score: 742.' },
-                    { icon: 'history', color: 'text-primary-container', title: 'Policy Update Applied', desc: "Bias weights adjusted for 'Income Segment B'." },
-                  ].map(({ icon, color, title, desc }) => (
-                    <div key={title} className="flex gap-4">
+                  {recentLogs.length > 0 ? recentLogs.map(({ id, icon, color, title, desc }) => (
+                    <div key={id || title} className="flex gap-4">
                       <div className={`w-10 h-10 rounded-xl bg-surface-container-low flex items-center justify-center ${color} flex-shrink-0`}>
                         <span className="material-symbols-outlined text-xl">{icon}</span>
                       </div>
                       <div>
                         <p className="text-sm font-bold text-on-surface leading-tight">{title}</p>
                         <p className="text-xs text-on-surface-variant mt-1">{desc}</p>
-                        <p className="text-[10px] font-bold text-primary mt-2">View AI Trace</p>
+                        <p className="text-[10px] font-bold text-primary mt-2 cursor-pointer hover:underline" onClick={() => (window.location.href = '/reports')}>View AI Trace</p>
                       </div>
                     </div>
-                  ))}
+                  )) : (
+                    <p className="text-xs text-on-surface-variant font-medium">No evaluation records available yet.</p>
+                  )}
                 </div>
               </div>
             </div>

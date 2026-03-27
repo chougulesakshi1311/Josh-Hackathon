@@ -34,7 +34,7 @@ export default function Login() {
   }
 
   return (
-    <body className="bg-gradient-soft min-h-screen font-body text-on-surface flex flex-col items-center justify-center p-6">
+    <div className="bg-gradient-soft min-h-screen font-body text-on-surface flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-[1100px] grid grid-cols-1 md:grid-cols-2 bg-surface-container-lowest rounded-[2rem] overflow-hidden ambient-shadow">
         {/* Left Panel */}
         <div className="hidden md:flex flex-col justify-between p-12 bg-primary-container relative overflow-hidden text-on-primary-container">
@@ -229,6 +229,6 @@ export default function Login() {
           © 2024 Explainable Credit AI • Built for high-stakes decisions
         </p>
       </footer>
-    </body>
+    </div>
   )
 }

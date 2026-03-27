@@ -3,7 +3,7 @@
  * Base URL auto-uses Vite proxy in dev; override VITE_API_URL for production.
  */
 
-const BASE_URL = import.meta.env.VITE_API_URL || ''
+const BASE_URL = (import.meta.env.VITE_API_URL || '') + '/api'
 
 function getToken() {
   return localStorage.getItem('access_token')
@@ -11,9 +11,11 @@ function getToken() {
 
 async function request(path, options = {}) {
   const token = getToken()
+  const email = localStorage.getItem('user_email')
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(email ? { 'X-User-Email': email } : {}),
     ...options.headers,
   }
 
@@ -73,4 +75,10 @@ export async function getDashboard() {
 
 export async function getBias() {
   return request('/bias')
+}
+
+// ---- History ----
+
+export async function getHistory() {
+  return request('/history')
 }
