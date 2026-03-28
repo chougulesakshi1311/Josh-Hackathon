@@ -136,15 +136,7 @@ export default function NewEvaluation() {
   return (
     <div className="bg-background font-body text-on-surface antialiased min-h-screen">
       <Sidebar />
-      <header className="flex justify-between items-center px-8 ml-64 h-16 sticky top-0 z-40 bg-[#f8f9fa]/70 backdrop-blur-xl shadow-[0_12px_32px_-4px_rgba(0,76,237,0.06)]">
-        <div className="flex items-center gap-4 flex-1">
-          <div className="relative w-full max-w-md">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
-            <input className="w-full bg-surface-container-low border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 placeholder:text-on-surface-variant/50 outline-none" placeholder="Search evaluations..." type="text" />
-          </div>
-        </div>
-        <Navbar />
-      </header>
+      <Navbar />
 
       <main className="ml-64 p-12 max-w-[1440px] mx-auto">
         <div className="mb-12">
@@ -340,7 +332,7 @@ export default function NewEvaluation() {
           </div>
 
           {/* Info Sidebar */}
-          <div className="lg:col-span-5 grid grid-cols-1 md:grid-cols-2 gap-6 lg:sticky lg:top-24 content-start">
+          <div className="lg:col-span-5 flex flex-col gap-6 lg:sticky lg:top-24 content-start">
             {/* AI Readiness Card */}
             <div className="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/10 shadow-lg group hover:-translate-y-1 transition-all duration-500 overflow-hidden relative flex flex-col h-[280px]">
               <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors" />
@@ -372,22 +364,7 @@ export default function NewEvaluation() {
               </div>
             </div>
 
-            {/* Compliance Badge */}
-            <div className="bg-secondary p-6 rounded-2xl shadow-xl hover:-translate-y-1 transition-all duration-500 relative group overflow-hidden flex flex-col items-start h-[280px]">
-               <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
-                 <span className="material-symbols-outlined text-4xl text-white">verified_user</span>
-               </div>
-               <div className="relative z-10">
-                  <h4 className="font-headline font-bold text-white text-[10px] uppercase tracking-[0.2em] mb-4 opacity-80 border-b border-white/20 pb-2">Regulatory Compliance</h4>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="material-symbols-outlined text-white text-lg">gavel</span>
-                    <h4 className="font-headline font-bold text-white text-sm">System Audit Log</h4>
-                  </div>
-                  <p className="text-white/80 text-[10px] leading-relaxed font-medium">
-                    This evaluation architecture strictly follows GDPR and CCPA guidelines for data residency and anonymization. Our models are audited for neutrality, ensuring that profiling data is never discriminated against.
-                  </p>
-               </div>
-            </div>
+
 
             {/* Submission Checklist */}
             <div className="bg-white rounded-2xl p-6 border-2 border-[#15803d]/10 shadow-lg flex flex-col items-start h-[280px]">
@@ -411,28 +388,7 @@ export default function NewEvaluation() {
               </div>
             </div>
 
-            {/* AI Insights Card */}
-            <div className="bg-gradient-to-br from-[#003ec7] to-[#0052ff] p-6 rounded-2xl shadow-2xl relative overflow-hidden group hover:scale-[1.02] transition-all duration-500 flex flex-col items-start h-[280px]">
-              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
-              <div className="relative z-10 w-full h-full flex flex-col">
-                <h4 className="font-headline font-bold text-white text-[10px] uppercase tracking-[0.2em] mb-4 opacity-70 border-b border-white/20 pb-2">Strategic Intelligence</h4>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="material-symbols-outlined text-white text-sm">lightbulb</span>
-                  <h4 className="font-headline font-bold text-white text-[11px] uppercase tracking-widest">Optimized Credit Tips</h4>
-                </div>
-                <div className="space-y-3 flex-1 overflow-hidden">
-                  <div className="bg-white/10 p-3 rounded-xl backdrop-blur-sm border border-white/10">
-                    <p className="text-white text-[10px] leading-relaxed font-medium">
-                      Maintain utilization below 30% and ensure zero late payments. Diversifying credit mix signals a mature profile.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-white/60 text-[8px] font-black uppercase tracking-widest">
-                    <span className="material-symbols-outlined text-xs">precision_manufacturing</span>
-                    AI CreditEngine V4.2 High-Precision
-                  </div>
-                </div>
-              </div>
-            </div>
+
           </div>
         </div>
       </main>

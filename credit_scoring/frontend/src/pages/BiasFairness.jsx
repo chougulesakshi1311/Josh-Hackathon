@@ -197,77 +197,7 @@ const IncomeChart = ({ data }) => (
   </div>
 )
 
-const ImpactAndAuditSection = () => (
-  <div className="flex flex-col gap-8 h-full">
-    {/* Top Disparate Impact Factors */}
-    <div className="bg-surface-container-lowest p-8 rounded-2xl ambient-shadow border border-outline-variant/10 flex-1 hover:shadow-xl transition-all duration-500">
-      <h4 className="font-headline font-bold text-error mb-4 text-[10px] uppercase tracking-[0.2em] opacity-80 border-b border-error/10 w-full pb-2">Risk Redlining Check</h4>
-      <h3 className="font-headline font-bold text-xl text-on-surface mb-6">Critical Bias Factors</h3>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between p-4 bg-error-container/10 rounded-xl border border-error-container/20">
-          <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-error">warning</span>
-            <div>
-              <p className="text-sm font-bold text-on-surface">Income Disparity</p>
-              <p className="text-xs text-on-surface-variant leading-relaxed">Lower income brackets flag higher algorithmic rejection correlation</p>
-            </div>
-          </div>
-          <span className="text-error font-bold text-[10px] uppercase tracking-wider bg-error-container px-2 py-1 rounded-full whitespace-nowrap">Review Rec</span>
-        </div>
-        <div className="flex items-center justify-between p-4 bg-secondary-container/10 rounded-xl border border-secondary/20">
-          <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-secondary">check_circle</span>
-            <div>
-              <p className="text-sm font-bold text-on-surface">Gender Parity</p>
-              <p className="text-xs text-on-surface-variant leading-relaxed">Approval distribution remains within 10% tolerance</p>
-            </div>
-          </div>
-          <span className="text-secondary font-bold text-[10px] uppercase tracking-wider bg-secondary-container px-2 py-1 rounded-full whitespace-nowrap">Compliant</span>
-        </div>
-      </div>
-    </div>
 
-    {/* Recent Audit Activity */}
-    <div className="bg-surface-container-lowest p-8 rounded-2xl ambient-shadow border border-outline-variant/10 flex-1 hover:shadow-xl transition-all duration-500">
-      <h4 className="font-headline font-bold text-[#003ec7] mb-4 text-[10px] uppercase tracking-[0.2em] opacity-80 border-b border-primary/10 w-full pb-2">Regulatory Chain</h4>
-      <h3 className="font-headline font-bold text-xl text-on-surface mb-6">System Compliance Logs</h3>
-      <div className="space-y-4">
-        {[
-          { id: 1, action: "Algorithmic Health Check", time: "2 hours ago", status: "Passed", color: "text-secondary", bg: "bg-secondary-container" },
-          { id: 2, action: "Demographic Variance Scan", time: "5 hours ago", status: "Flagged", color: "text-error", bg: "bg-error-container" },
-          { id: 3, action: "Model Weights Re-calibration", time: "1 day ago", status: "Completed", color: "text-primary", bg: "bg-primary-fixed" }
-        ].map((log) => (
-          <div key={log.id} className="flex justify-between items-center text-sm border-b border-outline-variant/10 pb-4 last:border-0 last:pb-0">
-             <div>
-               <p className="font-bold text-on-surface">{log.action}</p>
-               <p className="text-xs text-on-surface-variant mt-0.5">{log.time}</p>
-             </div>
-             <span className={`font-bold ${log.color} ${log.bg} px-3 py-1 rounded-md text-[10px] uppercase tracking-wider whitespace-nowrap`}>
-               {log.status}
-             </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>
-)
-
-const AlertsSection = ({ selectedRange }) => (
-  <div className="bg-primary/5 border border-primary/20 p-6 rounded-2xl flex items-start gap-5 w-full">
-    <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0 text-white shadow-lg shadow-primary/30">
-      <span className="material-symbols-outlined">insights</span>
-    </div>
-    <div>
-      <h3 className="font-headline font-bold text-primary text-lg leading-tight mb-1">
-        AI Evaluation Insights Active
-      </h3>
-      <p className="text-on-surface-variant text-sm leading-relaxed max-w-3xl">
-        Compliance monitoring is currently displaying the {RANGE_OPTIONS.find((option) => option.value === selectedRange)?.label.toLowerCase()} view.
-        The charts below re-query backend fairness metrics whenever the range changes.
-      </p>
-    </div>
-  </div>
-)
 
 export default function BiasFairness() {
   const [selectedRange, setSelectedRange] = useState('30d')
@@ -425,8 +355,6 @@ export default function BiasFairness() {
             onDismiss={() => setToast({ status: '', message: '' })}
           />
 
-          <AlertsSection selectedRange={selectedRange} />
-
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-2 items-stretch">
             
             {/* --- ROW 1 --- */}
@@ -438,11 +366,8 @@ export default function BiasFairness() {
             </div>
 
             {/* --- ROW 2 --- */}
-            <div className="lg:col-span-4">
+            <div className="lg:col-span-12">
               <GenderChart data={genderData} />
-            </div>
-            <div className="lg:col-span-8">
-              <ImpactAndAuditSection />
             </div>
 
           </div>

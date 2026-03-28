@@ -192,43 +192,31 @@ export default function Dashboard() {
               icon="analytics"
               iconBg="bg-primary-fixed"
               iconColor="text-primary"
-              badge="+12% vs LY"
-              badgeColor="text-secondary bg-secondary-container"
               label="Total Applications"
               value={loading ? '-' : stats.total_applications.toLocaleString()}
-              theory="Aggregated rolling 30-day decision volume."
             />
             <StatCard
               icon="check_circle"
               iconBg="bg-secondary-container"
               iconColor="text-on-secondary-container"
-              badge="Stable"
-              badgeColor="text-secondary bg-secondary-container"
               label="Approval Rate"
               value={loading ? '-' : `${stats.approval_rate}%`}
               valueColor="text-[#15803d]"
-              theory="System-wide probabilistic acceptance ratio."
             />
             <StatCard
               icon="cancel"
               iconBg="bg-error-container"
               iconColor="text-on-error-container"
-              badge="-3% Improvement"
-              badgeColor="text-error bg-error-container"
               label="Rejection Rate"
               value={loading ? '-' : `${stats.rejection_rate}%`}
               valueColor="text-[#EF4444]"
-              theory="Adverse action frequency in current cycle."
             />
             <StatCard
               icon="speed"
               iconBg="bg-primary-fixed-dim"
               iconColor="text-on-primary-fixed-variant"
-              badge="Prime Avg"
-              badgeColor="text-primary bg-primary-fixed"
               label="Avg Credit Score"
               value={loading ? '-' : stats.avg_credit_score}
-              theory="Mean FICO/Vantage benchmark weighted index."
             />
           </div>
 
@@ -390,35 +378,21 @@ function StatCard({
   icon,
   iconBg,
   iconColor,
-  badge,
-  badgeColor,
   label,
   value,
   valueColor = 'text-on-surface',
-  theory,
 }) {
   return (
     <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-outline-variant/10 hover:-translate-y-1 hover:shadow-2xl transition-all duration-500 group relative overflow-hidden">
       <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors" />
       <div className="relative z-10">
-        <div className="flex justify-between items-start mb-4">
-          <div className={`p-2.5 ${iconBg} rounded-xl ${iconColor} group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-sm`}>
+        <div className="mb-4">
+          <div className={`p-2.5 ${iconBg} rounded-xl ${iconColor} group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-sm inline-flex mb-4`}>
             <span className="material-symbols-outlined">{icon}</span>
           </div>
-          <span className={`text-[9px] font-black uppercase tracking-widest ${badgeColor} px-2.5 py-1 rounded-full shadow-sm`}>{badge}</span>
-        </div>
-        <div className="mb-4">
           <p className="text-on-surface-variant text-[10px] font-black uppercase tracking-[0.15em] mb-1 opacity-70">{label}</p>
           <h3 className={`text-3xl font-black font-headline leading-none tracking-tighter ${valueColor}`}>{value}</h3>
         </div>
-        {theory && (
-          <div className="pt-3 border-t border-outline-variant/10 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[12px] text-primary/50">info</span>
-            <p className="text-[9px] font-bold text-on-surface-variant uppercase tracking-tighter opacity-60 leading-tight">
-              {theory}
-            </p>
-          </div>
-        )}
       </div>
     </div>
   )
