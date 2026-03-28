@@ -22,6 +22,9 @@ def train():
     # Drop derived / identifier columns
     df = df.drop(columns=["ID", "Age_Group"], errors="ignore")
 
+    # Feature Engineering (LTI)
+    df["LTI_Ratio"] = df["Loan_Amount"] / (df["Income"] + 1)
+
     # Target: 1 = Approved, 0 = Denied/Rejected
     df["target"] = (df["Loan_Approved"] == "Approved").astype(int)
     df = df.drop(columns=["Loan_Approved"])
@@ -31,6 +34,7 @@ def train():
         "Gender", "Race", "Employment_Type", "Education_Level",
         "Citizenship_Status", "Language_Proficiency",
         "Disability_Status", "Criminal_Record", "Zip_Code_Group",
+        "Loan_Purpose"
     ]
 
     encoders = {}
@@ -53,14 +57,17 @@ def train():
 
     print(f"\nTraining on {len(X_train)} samples, testing on {len(X_test)} samples...")
 
+    pos_weight = (y_train == 0).sum() / (y_train == 1).sum() if (y_train == 1).sum() > 0 else 1.0
+
     model = xgb.XGBClassifier(
-        n_estimators=300,
+        n_estimators=500,
         max_depth=6,
-        learning_rate=0.08,
-        subsample=0.8,
-        colsample_bytree=0.8,
+        learning_rate=0.05,
+        subsample=1.0,
+        colsample_bytree=1.0,
         min_child_weight=3,
         gamma=0.1,
+        scale_pos_weight=pos_weight,
         eval_metric="logloss",
         early_stopping_rounds=30,
         random_state=42,

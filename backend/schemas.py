@@ -25,8 +25,9 @@ class ApplicantInput(BaseModel):
     criminal_record: bool = Field(..., description="Does the applicant have a criminal record?")
     disability_status: bool = Field(..., description="Does the applicant have a disability?")
 
-    # --- Location ---
-    zip_code_group: str = Field(..., description="Urban Professional | High-income Suburban | Working Class Urban | Rural | Historically Redlined")
+# --- Location & Other ---
+    zip_code_group: str = Field(..., description="Urban Professional | High-income Suburban | Working Class Urban | Rural | Historically Redlined")             
+    loan_purpose: str = Field("Other", description="Home | Auto | Business | Education | Medical | Other")
 
     # --- Optional (used for explanation text only) ---
     existing_debt: Optional[float] = Field(None, description="Total existing outstanding debt in USD")

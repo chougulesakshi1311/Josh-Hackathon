@@ -48,6 +48,15 @@ const LOCATION_OPTIONS = [
   { value: 'Historically Redlined', label: 'Historically Redlined' },
 ]
 
+const PURPOSE_OPTIONS = [
+  { value: 'Home', label: 'Home' },
+  { value: 'Auto', label: 'Auto' },
+  { value: 'Business', label: 'Business' },
+  { value: 'Education', label: 'Education' },
+  { value: 'Medical', label: 'Medical' },
+  { value: 'Other', label: 'Other' },
+]
+
 const DEFAULT_FORM = {
   age: '',
   income: '',
@@ -59,6 +68,7 @@ const DEFAULT_FORM = {
   criminal_record: false,
   disability_status: false,
   zip_code_group: 'Urban Professional',
+  loan_purpose: 'Other',
   loan_amount: '',
   existing_debt: '',
   credit_score_input: 720,
@@ -106,6 +116,7 @@ export default function NewEvaluation() {
         criminal_record: form.criminal_record,
         disability_status: form.disability_status,
         zip_code_group: form.zip_code_group,
+        loan_purpose: form.loan_purpose,
         loan_amount: Number(String(form.loan_amount).replace(/,/g, '')),
         existing_debt: Number(String(form.existing_debt).replace(/,/g, '')),
         credit_score_input: Number(form.credit_score_input),
@@ -247,11 +258,19 @@ export default function NewEvaluation() {
               {/* Financial Liability */}
               <section>
                 <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant/60 mb-6 font-label">
-                  Financial Liability
+                  Financial Liability & Purpose
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2 group">
-                    <label className="flex items-center gap-2 text-sm font-semibold text-on-surface font-label ml-1 group-focus-within:text-primary transition-colors">
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-on-surface font-label ml-1">Loan Purpose</label>
+                    <select name="loan_purpose" value={form.loan_purpose} onChange={handleChange} className="w-full bg-surface border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary/20 transition-all font-body outline-none appearance-none">
+                      {PURPOSE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-on-surface font-label ml-1">
+
                       Requested Loan Amount
                       <span className="material-symbols-outlined text-[14px] text-on-surface-variant cursor-help" title="Principal amount the applicant is seeking">help</span>
                     </label>

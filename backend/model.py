@@ -53,7 +53,10 @@ def preprocess(applicant, encoders: dict, feature_names: list) -> np.ndarray:
     disability_str = "Yes" if applicant.disability_status else "No"
     criminal_str = "Yes" if applicant.criminal_record else "No"
 
+    lti_ratio = applicant.loan_amount / (applicant.income + 1)
+
     raw = {
+        "LTI_Ratio": lti_ratio,
         "Age":                _encode_free("Age",                applicant.age,               encoders),
         "Income":             applicant.income,
         "Credit_Score":       applicant.credit_score_input,
@@ -67,6 +70,7 @@ def preprocess(applicant, encoders: dict, feature_names: list) -> np.ndarray:
         "Disability_Status":  _encode_value("Disability_Status",  disability_str,              encoders),
         "Criminal_Record":    _encode_value("Criminal_Record",    criminal_str,                encoders),
         "Zip_Code_Group":     _encode_value("Zip_Code_Group",     applicant.zip_code_group,    encoders),
+        "Loan_Purpose":       _encode_value("Loan_Purpose",       applicant.loan_purpose,      encoders),
     }
 
     row = [raw.get(f, 0) for f in feature_names]
@@ -108,3 +112,4 @@ def predict(applicant, model=None, encoders=None, feature_names=None):
         decision = "Rejected"
 
     return score, decision, prob, arr
+
