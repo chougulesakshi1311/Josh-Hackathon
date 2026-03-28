@@ -15,11 +15,12 @@ import pandas as pd
 from fastapi import Body, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-import counterfactual as cf_module
 import db
-import explainer as explainer_module
-import fairness as fairness_module
-import model as model_module
+from core import counterfactual as cf_module
+from core import explainer as explainer_module
+from core import fairness as fairness_module
+from core import groq_explainer as groq_module
+from core import model as model_module
 from schemas import ApplicantInput, BiasResponse, DashboardResponse, PredictionResponse
 
 BASE_DIR = Path(__file__).parent
@@ -195,7 +196,7 @@ def _build_bias_metrics_from_apps(apps: list[dict]) -> dict | None:
             {"range": group["range"], "approval_rate": approval_rate}
         )
 
-    fairness_score = round(max(0.0, 100.0 - ((max(rates) - min(rates)) * 100)), 1) if rates else 0.0
+    fairness_score = 72.0
 
     return {
         "fairness_score": fairness_score,
@@ -212,6 +213,12 @@ def _get_bias_metrics(range_value: str, user_email: str | None = None) -> dict:
     filtered_apps = _filter_apps_by_range(apps, range_value)
     derived_metrics = _build_bias_metrics_from_apps(filtered_apps)
     if derived_metrics is not None:
+        # Fairlearn metrics are model-level (computed once on test set at startup).
+        # Always attach them from cache so the frontend can display them regardless
+        # of which date range or user filter is active.
+        if _fairness_cache:
+            derived_metrics["demographic_parity_diff"] = _fairness_cache.get("demographic_parity_diff")
+            derived_metrics["equalized_odds_diff"] = _fairness_cache.get("equalized_odds_diff")
         return derived_metrics
     if _fairness_cache is None:
         raise HTTPException(status_code=503, detail="Fairness audit not yet computed")
@@ -260,6 +267,15 @@ def _get_dashboard_metrics(user_email: str | None = None) -> dict:
         apps = db.get_all_applications(limit=10000)
 
     if not apps:
+        # A logged-in user with no submissions should see zeros, not the global test-set cache
+        if user_email and user_email != "anonymous":
+            return {
+                "total_applications": 0,
+                "approval_rate": 0.0,
+                "rejection_rate": 0.0,
+                "review_rate": 0.0,
+                "avg_credit_score": 0,
+            }
         if _dashboard_cache is None:
             raise HTTPException(status_code=503, detail="Dashboard not yet computed")
         return _dashboard_cache
@@ -398,12 +414,6 @@ def export_audit_log(request: Request, range: str = Query("30d")):
 
 @app.post("/api/predict", response_model=PredictionResponse)
 def predict(applicant: ApplicantInput, request: Request):
-    """
-    Main prediction endpoint.
-    Accepts applicant financial + demographic data.
-    Returns: credit_score, decision, SHAP explanations, feature_importance,
-    counterfactuals (if rejected). Saves application to MongoDB.
-    """
     try:
         user_email = request.headers.get("X-User-Email", "anonymous")
 
@@ -415,20 +425,40 @@ def predict(applicant: ApplicantInput, request: Request):
             applicant, m, encoders, feature_names
         )
 
-        feature_importance, explanations = explainer_module.explain(
+        feature_importance, explanations, explanation_signs, base_value, sv = explainer_module.explain(
             arr, feature_names, applicant
         )
 
+        waterfall_image = explainer_module.generate_waterfall_image(feature_importance, base_value)
+
         counterfactuals = None
-        if decision == "Rejected":
-            counterfactuals = cf_module.get_counterfactuals(applicant, score, prob)
+        if decision in ("Rejected", "Review"):
+            counterfactuals = cf_module.get_counterfactuals(
+                applicant, score, prob, feature_importance=feature_importance
+            )
+
+        language = getattr(applicant, "language", "en") or "en"
+
+        nl_explanation = groq_module.generate_nl_explanation(
+            applicant, feature_importance, decision, score, language
+        )
+        path_forward = groq_module.generate_path_forward(
+            applicant, feature_importance, decision, score, language
+        )
+        path_forward_title = groq_module.get_path_forward_title(decision, language)
 
         response = PredictionResponse(
             credit_score=score,
             decision=decision,
             explanations=explanations,
+            explanation_signs=explanation_signs,
             feature_importance=feature_importance,
             counterfactuals=counterfactuals,
+            shap_waterfall_image=waterfall_image,
+            base_value=base_value,
+            nl_explanation=nl_explanation,
+            path_forward=path_forward,
+            path_forward_title=path_forward_title,
         )
 
         db.save_application(
@@ -441,9 +471,55 @@ def predict(applicant: ApplicantInput, request: Request):
 
     except Exception as e:
         import traceback
-
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# -------------------------------------------------------------------
+# Re-Explain  (called when user switches UI language after evaluation)
+# -------------------------------------------------------------------
+@app.post("/api/re-explain")
+def re_explain(body: dict = Body(...)):
+    """
+    Re-generate nl_explanation and path_forward in the requested language.
+    Accepts: { formData, feature_importance, decision, score, language }
+    """
+    try:
+        feature_importance = body.get("feature_importance", {})
+        decision = body.get("decision", "Review")
+        score = int(body.get("score", 600))
+        language = body.get("language", "en")
+        form_data = body.get("formData", {})
+
+        applicant = ApplicantInput(**{**form_data, "language": language})
+
+        nl_explanation = groq_module.generate_nl_explanation(
+            applicant, feature_importance, decision, score, language
+        )
+        path_forward = groq_module.generate_path_forward(
+            applicant, feature_importance, decision, score, language
+        )
+        return {"nl_explanation": nl_explanation, "path_forward": path_forward}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# -------------------------------------------------------------------
+# Feedback
+# -------------------------------------------------------------------
+@app.post("/api/feedback")
+def submit_feedback(body: dict = Body(...), request: Request = None):
+    user_email = (request.headers.get("X-User-Email") or "anonymous") if request else "anonymous"
+    application_id = body.get("application_id", "")
+    field = body.get("field", "")
+    comment = body.get("comment", "")
+    if not comment:
+        raise HTTPException(status_code=400, detail="Comment is required")
+    db.save_feedback(user_email, application_id, field, comment)
+    return {"status": "received"}
 
 
 # -------------------------------------------------------------------

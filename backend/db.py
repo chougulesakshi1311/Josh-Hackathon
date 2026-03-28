@@ -148,6 +148,23 @@ def get_all_applications(limit: int = 1000) -> List[Dict[str, Any]]:
     
     return apps
 
+# ========== FEEDBACK ==========
+
+def save_feedback(user_email: str, application_id: str, field: str, comment: str) -> str:
+    """Save a user bias/error feedback report."""
+    if db is None:
+        return "in-memory"
+    record = {
+        "user_email": user_email,
+        "application_id": application_id,
+        "field": field,
+        "comment": comment,
+        "created_at": datetime.utcnow(),
+    }
+    result = db["feedback"].insert_one(record)
+    return str(result.inserted_id)
+
+
 # ========== AUDIT RESULTS ==========
 
 def save_audit_result(audit_data: Dict[str, Any]) -> str:

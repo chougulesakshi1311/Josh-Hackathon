@@ -5,7 +5,7 @@ import joblib
 import numpy as np
 from pathlib import Path
 
-BASE_DIR = Path(__file__).parent
+ARTIFACTS_DIR = Path(__file__).parent.parent / "artifacts"
 
 # Module-level singletons loaded at server startup
 _model = None
@@ -15,9 +15,9 @@ _feature_names = None
 
 def load_model():
     global _model, _encoders, _feature_names
-    _model = joblib.load(BASE_DIR / "model.pkl")
-    _encoders = joblib.load(BASE_DIR / "encoders.pkl")
-    _feature_names = joblib.load(BASE_DIR / "feature_names.pkl")
+    _model = joblib.load(ARTIFACTS_DIR / "model.pkl")
+    _encoders = joblib.load(ARTIFACTS_DIR / "encoders.pkl")
+    _feature_names = joblib.load(ARTIFACTS_DIR / "feature_names.pkl")
     return _model
 
 
@@ -55,11 +55,14 @@ def preprocess(applicant, encoders: dict, feature_names: list) -> np.ndarray:
 
     lti_ratio = applicant.loan_amount / (applicant.income + 1)
 
+    # Use median credit score (650) if applicant has no prior score
+    credit_score = applicant.credit_score_input if applicant.credit_score_input is not None else 650
+
     raw = {
         "LTI_Ratio": lti_ratio,
         "Age":                _encode_free("Age",                applicant.age,               encoders),
         "Income":             applicant.income,
-        "Credit_Score":       applicant.credit_score_input,
+        "Credit_Score":       credit_score,
         "Loan_Amount":        applicant.loan_amount,
         "Gender":             _encode_value("Gender",             applicant.gender,             encoders),
         "Race":               _encode_value("Race",               applicant.race,               encoders),

@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { loginUser, signupUser } from '../services/api'
 
 export default function Login() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [mode, setMode] = useState('login') // 'login' | 'signup'
   const [form, setForm] = useState({ email: '', password: '' })
   const [loading, setLoading] = useState(false)
@@ -42,27 +44,27 @@ export default function Login() {
             <div className="flex items-center gap-2 mb-12">
               <span className="material-symbols-outlined text-4xl">account_balance</span>
               <span className="font-headline font-extrabold text-2xl tracking-tighter">
-                Explainable Credit AI
+                {t('appTitle')}
               </span>
             </div>
             <h1 className="font-headline text-4xl font-extrabold leading-tight mb-6">
-              Deciphering the <br />
-              Future of Lending.
+              {t('heroHeading').split('\n').map((line, i) => (
+                <span key={i}>{line}{i === 0 && <br />}</span>
+              ))}
             </h1>
             <p className="text-lg opacity-80 max-w-sm">
-              Access our high-precision editorial interface for credit analysis and AI
-              transparency.
+              {t('heroSubtitle')}
             </p>
           </div>
 
           <div className="relative z-10 space-y-6">
             <div className="glass-effect p-6 rounded-xl border border-white/10">
               <p className="font-headline font-bold text-sm uppercase tracking-widest mb-2 text-white/60">
-                System Status
+                {t('systemStatus')}
               </p>
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-secondary-fixed shadow-[0_0_10px_#6cf8bb]" />
-                <span className="text-sm font-semibold">All AI Core Models Operational</span>
+                <span className="text-sm font-semibold">{t('allSystemsOk')}</span>
               </div>
             </div>
           </div>
@@ -84,12 +86,10 @@ export default function Login() {
 
           <div className="mb-10">
             <h2 className="font-headline text-3xl font-extrabold text-on-surface mb-2">
-              {mode === 'login' ? 'Welcome Back' : 'Create Account'}
+              {mode === 'login' ? t('welcomeBack') : t('createAccount')}
             </h2>
             <p className="text-on-surface-variant text-sm">
-              {mode === 'login'
-                ? 'Please enter your credentials to access the digital curator.'
-                : 'Register to start evaluating credit risk with AI.'}
+              {mode === 'login' ? t('loginSubtitle') : t('signupSubtitle')}
             </p>
           </div>
 
@@ -97,7 +97,7 @@ export default function Login() {
             {/* Email */}
             <div className="space-y-2">
               <label className="font-label text-sm font-semibold text-on-surface pl-1" htmlFor="email">
-                Work Email
+                {t('workEmail')}
               </label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-outline">
@@ -120,11 +120,11 @@ export default function Login() {
             <div className="space-y-2">
               <div className="flex justify-between items-center px-1">
                 <label className="font-label text-sm font-semibold text-on-surface" htmlFor="password">
-                  Password
+                  {t('password')}
                 </label>
                 {mode === 'login' && (
                   <a className="text-xs font-bold text-primary hover:underline" href="#">
-                    Forgot?
+                    {t('forgot')}
                   </a>
                 )}
               </div>
@@ -172,11 +172,11 @@ export default function Login() {
                   <span className="material-symbols-outlined animate-spin text-[20px]">
                     autorenew
                   </span>
-                  Processing…
+                  {t('processing')}
                 </>
               ) : (
                 <>
-                  {mode === 'login' ? 'Sign In to Dashboard' : 'Create Account'}
+                  {mode === 'login' ? t('signIn') : t('createAccount')}
                   <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
                 </>
               )}
@@ -185,12 +185,12 @@ export default function Login() {
 
           {/* Toggle mode */}
           <p className="mt-8 text-center text-sm text-on-surface-variant">
-            {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+            {mode === 'login' ? t('noAccount') + ' ' : t('haveAccount') + ' '}
             <button
               onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError('') }}
               className="text-primary font-bold hover:underline"
             >
-              {mode === 'login' ? 'Sign Up' : 'Sign In'}
+              {mode === 'login' ? t('signUp') : t('signInShort')}
             </button>
           </p>
 
@@ -201,7 +201,7 @@ export default function Login() {
                 <div className="w-full border-t border-outline-variant/30" />
               </div>
               <div className="relative flex justify-center text-xs uppercase tracking-widest font-bold text-outline">
-                <span className="bg-surface-container-lowest px-4">Enterprise SSO</span>
+                <span className="bg-surface-container-lowest px-4">{t('enterpriseSSO')}</span>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -221,12 +221,12 @@ export default function Login() {
       {/* Footer */}
       <footer className="mt-12 text-center space-y-4">
         <div className="flex items-center justify-center gap-8 text-xs font-bold text-outline uppercase tracking-widest">
-          <a className="hover:text-primary transition-colors" href="#">Privacy Policy</a>
-          <a className="hover:text-primary transition-colors" href="#">Terms of Service</a>
-          <a className="hover:text-primary transition-colors" href="#">Security Audit</a>
+          <a className="hover:text-primary transition-colors" href="#">{t('privacyPolicy')}</a>
+          <a className="hover:text-primary transition-colors" href="#">{t('termsOfService')}</a>
+          <a className="hover:text-primary transition-colors" href="#">{t('securityAudit')}</a>
         </div>
         <p className="text-[10px] text-outline-variant font-medium uppercase tracking-[0.2em]">
-          © 2024 Explainable Credit AI • Built for high-stakes decisions
+          {t('copyright')}
         </p>
       </footer>
     </div>

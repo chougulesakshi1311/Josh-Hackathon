@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import Navbar from '../components/Navbar'
 import Sidebar from '../components/Sidebar'
-import { exportDashboardReport, getDashboard, getHistory } from '../services/api'
+import { exportDashboardReport, getBias, getDashboard, getHistory } from '../services/api'
 
 const EMPTY_STATS = {
   total_applications: 0,
@@ -35,7 +36,7 @@ function Toast({ status, message, onDismiss }) {
       <div className="flex items-center justify-between gap-4">
         <span>{message}</span>
         <button className="text-xs font-bold uppercase tracking-wider" onClick={onDismiss}>
-          Close
+          ✕
         </button>
       </div>
     </div>
@@ -43,8 +44,10 @@ function Toast({ status, message, onDismiss }) {
 }
 
 export default function Dashboard() {
+  const { t } = useTranslation()
   const [data, setData] = useState(null)
   const [history, setHistory] = useState([])
+  const [biasData, setBiasData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [exporting, setExporting] = useState(false)
@@ -58,14 +61,16 @@ export default function Dashboard() {
       setError('')
 
       try {
-        const [dashboardData, historyData] = await Promise.all([
+        const [dashboardData, historyData, biasResult] = await Promise.all([
           getDashboard(),
           getHistory(),
+          getBias('30d').catch(() => null),
         ])
 
         if (cancelled) return
         setData(dashboardData)
         setHistory(historyData)
+        setBiasData(biasResult)
       } catch (e) {
         if (cancelled) return
         setError(e.message)
@@ -89,9 +94,9 @@ export default function Dashboard() {
     try {
       const { blob, filename } = await exportDashboardReport()
       downloadBlob(blob, filename)
-      setToast({ status: 'success', message: 'Dashboard report downloaded successfully.' })
+      setToast({ status: 'success', message: t('downloadedSuccess') })
     } catch (e) {
-      setToast({ status: 'error', message: e.message || 'Failed to export dashboard report.' })
+      setToast({ status: 'error', message: e.message || t('exportFailed') })
     } finally {
       setExporting(false)
     }
@@ -107,6 +112,8 @@ export default function Dashboard() {
   const offsetReject = totalC * (1 - (reviewPct + rejectPct) / 100)
   const offsetReview = totalC * (1 - reviewPct / 100)
 
+  const DECISION_LABEL = { Approved: t('approved'), Rejected: t('rejected'), Review: t('manualReview') }
+
   const recentLogs = history.slice(0, 3).map((app) => {
     const decision = app.prediction?.decision
     const id = app._id?.slice(-4) || 'N/A'
@@ -114,7 +121,7 @@ export default function Dashboard() {
     let bg = 'bg-primary/10'
     let text = 'text-primary'
     let border = 'border-primary/20'
-    
+
     if (decision === 'Approved') {
       icon = 'verified'
       bg = 'bg-secondary/10'
@@ -134,8 +141,8 @@ export default function Dashboard() {
       bg,
       text,
       border,
-      title: `Case #${id} ${decision}`,
-      desc: app.prediction?.explanations?.[0] || 'View full evaluation for details.',
+      title: `${t('caseLabel')} #${id} — ${DECISION_LABEL[decision] || decision || t('unknown')}`,
+      desc: app.prediction?.explanations?.[0] || t('viewFullDetails'),
     }
   })
 
@@ -149,10 +156,10 @@ export default function Dashboard() {
           <div className="flex justify-between items-end">
             <div>
               <h2 className="text-4xl font-extrabold font-headline tracking-tight text-on-surface mb-2">
-                Executive Overview
+                {t('execOverview')}
               </h2>
               <p className="text-on-surface-variant font-sans">
-                Real-time credit performance, algorithmic bias monitoring, and decision velocity audits.
+                {t('execSubtitle')}
               </p>
             </div>
             <div className="flex gap-3">
@@ -164,13 +171,13 @@ export default function Dashboard() {
                 {exporting && (
                   <span className="material-symbols-outlined animate-spin text-sm">autorenew</span>
                 )}
-                {exporting ? 'Generating...' : 'Export Report'}
+                {exporting ? t('generating') : t('exportReport')}
               </button>
               <button
                 onClick={() => (window.location.href = '/evaluation')}
                 className="bg-gradient-to-r from-[#003ec7] to-[#0052ff] text-white font-semibold px-6 py-2.5 rounded-xl text-sm ambient-shadow hover:opacity-90 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300"
               >
-                New Evaluation
+                {t('newEvaluation')}
               </button>
             </div>
           </div>
@@ -192,14 +199,14 @@ export default function Dashboard() {
               icon="analytics"
               iconBg="bg-primary-fixed"
               iconColor="text-primary"
-              label="Total Applications"
+              label={t('totalApplications')}
               value={loading ? '-' : stats.total_applications.toLocaleString()}
             />
             <StatCard
               icon="check_circle"
               iconBg="bg-secondary-container"
               iconColor="text-on-secondary-container"
-              label="Approval Rate"
+              label={t('approvalRate')}
               value={loading ? '-' : `${stats.approval_rate}%`}
               valueColor="text-[#15803d]"
             />
@@ -207,7 +214,7 @@ export default function Dashboard() {
               icon="cancel"
               iconBg="bg-error-container"
               iconColor="text-on-error-container"
-              label="Rejection Rate"
+              label={t('rejectionRate')}
               value={loading ? '-' : `${stats.rejection_rate}%`}
               valueColor="text-[#EF4444]"
             />
@@ -215,7 +222,7 @@ export default function Dashboard() {
               icon="speed"
               iconBg="bg-primary-fixed-dim"
               iconColor="text-on-primary-fixed-variant"
-              label="Avg Credit Score"
+              label={t('avgCreditScore')}
               value={loading ? '-' : stats.avg_credit_score}
             />
           </div>
@@ -225,11 +232,11 @@ export default function Dashboard() {
             <div className="lg:col-span-8 bg-surface-container-lowest p-8 rounded-2xl ambient-shadow border border-outline-variant/10 relative overflow-hidden flex flex-col h-full hover:shadow-xl transition-all duration-500">
               <div className="flex justify-between items-center mb-10">
                 <div className="w-full">
-                  <h4 className="font-headline font-bold text-[#0052ff] mb-4 text-[10px] uppercase tracking-[0.2em] opacity-80 border-b border-primary/10 w-full pb-2">Risk Stratification</h4>
+                  <h4 className="font-headline font-bold text-[#0052ff] mb-4 text-[10px] uppercase tracking-[0.2em] opacity-80 border-b border-primary/10 w-full pb-2">{t('riskStratification')}</h4>
                   <div className="flex justify-between items-center">
                     <div>
-                      <h4 className="text-xl font-bold font-headline text-on-surface">Credit Score Distribution</h4>
-                      <p className="text-sm text-on-surface-variant">Density of applicant scores across major tiers</p>
+                      <h4 className="text-xl font-bold font-headline text-on-surface">{t('creditScoreDistribution')}</h4>
+                      <p className="text-sm text-on-surface-variant">{t('scoreDistSubtitle')}</p>
                     </div>
                   </div>
                 </div>
@@ -257,10 +264,10 @@ export default function Dashboard() {
             </div>
 
             <div className="lg:col-span-4 bg-surface-container-lowest p-8 rounded-2xl ambient-shadow border border-outline-variant/10 flex flex-col items-center text-center h-full hover:shadow-xl transition-all duration-500">
-              <h4 className="font-headline font-bold text-[#15803d] mb-4 text-[10px] uppercase tracking-[0.2em] opacity-80 border-b border-success/10 w-full pb-2">Intelligence Split</h4>
-              <h4 className="text-xl font-bold font-headline mb-2 text-on-surface">Portfolio Split</h4>
+              <h4 className="font-headline font-bold text-[#15803d] mb-4 text-[10px] uppercase tracking-[0.2em] opacity-80 border-b border-success/10 w-full pb-2">{t('intelligenceSplit')}</h4>
+              <h4 className="text-xl font-bold font-headline mb-2 text-on-surface">{t('portfolioSplit')}</h4>
               <p className="text-sm text-on-surface-variant mb-8">
-                Current approval decision velocity
+                {t('portfolioSubtitle')}
               </p>
               <div className="relative w-48 h-48 mb-8 mt-auto">
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
@@ -273,14 +280,14 @@ export default function Dashboard() {
                   <span className="text-3xl font-extrabold font-headline leading-none">
                     {loading ? '-' : stats.total_applications >= 1000 ? `${(stats.total_applications / 1000).toFixed(1)}k` : stats.total_applications}
                   </span>
-                  <span className="text-[10px] font-bold text-on-surface-variant uppercase">Total</span>
+                  <span className="text-[10px] font-bold text-on-surface-variant uppercase">{t('total')}</span>
                 </div>
               </div>
               <div className="w-full space-y-4 mb-auto">
                 {[
-                  { color: 'bg-secondary', label: 'Approved', value: `${stats.approval_rate}%` },
-                  { color: 'bg-error', label: 'Rejected', value: `${stats.rejection_rate}%` },
-                  { color: 'bg-primary-fixed-dim', label: 'Manual Review', value: `${stats.review_rate}%` },
+                  { color: 'bg-secondary', label: t('approved'), value: `${stats.approval_rate}%` },
+                  { color: 'bg-error', label: t('rejected'), value: `${stats.rejection_rate}%` },
+                  { color: 'bg-primary-fixed-dim', label: t('manualReview'), value: `${stats.review_rate}%` },
                 ].map(({ color, label, value }) => (
                   <div key={label} className="flex items-center justify-between text-xs font-semibold">
                     <div className="flex items-center gap-2">
@@ -298,42 +305,45 @@ export default function Dashboard() {
             <div className="lg:col-span-8 bg-surface-container-lowest p-8 rounded-2xl ambient-shadow border border-outline-variant/10 flex flex-col h-full hover:shadow-xl transition-all duration-500">
               <div className="flex justify-between items-center mb-8">
                 <div className="w-full">
-                  <h4 className="font-headline font-bold text-[#15803d] mb-4 text-[10px] uppercase tracking-[0.2em] opacity-80 border-b border-success/10 w-full pb-2">Fairness Engine</h4>
+                  <h4 className="font-headline font-bold text-[#15803d] mb-4 text-[10px] uppercase tracking-[0.2em] opacity-80 border-b border-success/10 w-full pb-2">{t('fairnessEngine')}</h4>
                   <div className="flex justify-between items-center">
                     <div>
-                      <h4 className="text-xl font-bold font-headline text-on-surface">Bias &amp; Fairness Analysis</h4>
-                      <p className="text-sm text-on-surface-variant">Approval rates segmented by income quartiles</p>
+                      <h4 className="text-xl font-bold font-headline text-on-surface">{t('biasFairnessAnalysis')}</h4>
+                      <p className="text-sm text-on-surface-variant">{t('incomeSubtitle')}</p>
                     </div>
                     <a href="/bias" className="text-primary text-xs font-bold flex items-center gap-1 group">
-                      View Audit
+                      {t('viewAudit')}
                       <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
                     </a>
                   </div>
                 </div>
               </div>
               <div className="space-y-6 mt-auto mb-auto">
-                {[
-                  { label: 'High Income (>$120k)', pct: 82, color: 'bg-secondary', textColor: 'text-secondary' },
-                  { label: 'Upper Middle ($80k-$120k)', pct: 71, color: 'bg-secondary', textColor: 'text-secondary' },
-                  { label: 'Lower Middle ($45k-$80k)', pct: 64, color: 'bg-secondary', textColor: 'text-secondary' },
-                  { label: 'Low Income (<$45k)', pct: 52, color: 'bg-error', textColor: 'text-error' },
-                ].map(({ label, pct, color, textColor }) => (
-                  <div key={label} className="space-y-2">
-                    <div className="flex justify-between text-xs font-bold">
-                      <span className="text-on-surface font-semibold">{label}</span>
-                      <span className={`${textColor} font-black`}>{pct}% Approval</span>
-                    </div>
-                    <div className="w-full h-3 bg-surface-container-low rounded-full overflow-hidden">
-                      <div className={`h-full ${color} rounded-full transition-all duration-1000 ease-out`} style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                ))}
+                {biasData?.income_groups?.length > 0 ? (
+                  [...biasData.income_groups].reverse().map(({ range, approval_rate }) => {
+                    const pct = Math.round(approval_rate * 100)
+                    const isLow = pct < 60
+                    return (
+                      <div key={range} className="space-y-2">
+                        <div className="flex justify-between text-xs font-bold">
+                          <span className="text-on-surface font-semibold">₹{range}</span>
+                          <span className={`font-black ${isLow ? 'text-error' : 'text-secondary'}`}>{pct}{t('approvalLabel')}</span>
+                        </div>
+                        <div className="w-full h-3 bg-surface-container-low rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full transition-all duration-1000 ease-out ${isLow ? 'bg-error' : 'bg-secondary'}`} style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <p className="text-sm text-on-surface-variant text-center py-4">{t('noBiasData')}</p>
+                )}
               </div>
             </div>
 
             <div className="lg:col-span-4 bg-surface-container-lowest p-8 rounded-2xl ambient-shadow border border-outline-variant/10 hover:shadow-xl transition-all duration-500 flex flex-col h-full">
-              <h4 className="font-headline font-bold text-[#003ec7] mb-4 text-[10px] uppercase tracking-[0.2em] opacity-80 border-b border-primary/10 w-full pb-2">Transparency Logs</h4>
-              <h4 className="text-xl font-bold font-headline mb-6 text-on-surface">Explainability Logs</h4>
+              <h4 className="font-headline font-bold text-[#003ec7] mb-4 text-[10px] uppercase tracking-[0.2em] opacity-80 border-b border-primary/10 w-full pb-2">{t('transparencyLogs')}</h4>
+              <h4 className="text-xl font-bold font-headline mb-6 text-on-surface">{t('explainabilityLogs')}</h4>
               <div className="space-y-6 overflow-y-auto pr-2 mt-auto mb-auto">
                 {recentLogs.length > 0 ? (
                   recentLogs.map(({ id, icon, bg, text, border, title, desc }) => (
@@ -345,7 +355,7 @@ export default function Dashboard() {
                         <p className="text-sm font-bold text-on-surface leading-tight group-hover:text-primary transition-colors">{title}</p>
                         <p className="text-[11px] text-on-surface-variant mt-1.5 line-clamp-2 leading-relaxed">{desc}</p>
                         <div className="flex items-center gap-1 mt-2.5">
-                           <span className="text-[9px] font-black text-primary uppercase tracking-widest hover:underline">Inspect AI Trace</span>
+                           <span className="text-[9px] font-black text-primary uppercase tracking-widest hover:underline">{t('inspectAITrace')}</span>
                            <span className="material-symbols-outlined text-[10px] text-primary">analytics</span>
                         </div>
                       </div>
@@ -353,7 +363,7 @@ export default function Dashboard() {
                   ))
                 ) : (
                   <p className="text-xs text-on-surface-variant font-medium">
-                    No evaluation records available yet.
+                    {t('noEvaluations')}
                   </p>
                 )}
               </div>
@@ -362,11 +372,11 @@ export default function Dashboard() {
         </section>
 
         <footer className="mt-auto px-8 py-6 border-t border-outline-variant/10 flex justify-between items-center text-on-surface-variant text-[10px] font-bold uppercase tracking-widest">
-          <span>Copyright 2024 Explainable Credit AI • Version 1.0.0</span>
+          <span>{t('copyright')}</span>
           <div className="flex gap-6">
-            <a className="hover:text-primary transition-colors" href="#">Privacy Policy</a>
-            <a className="hover:text-primary transition-colors" href="#">Terms of Service</a>
-            <a className="hover:text-primary transition-colors" href="#">Audit Logs</a>
+            <a className="hover:text-primary transition-colors" href="#">{t('privacyPolicy')}</a>
+            <a className="hover:text-primary transition-colors" href="#">{t('termsOfService')}</a>
+            <a className="hover:text-primary transition-colors" href="#">{t('auditLogs')}</a>
           </div>
         </footer>
       </main>

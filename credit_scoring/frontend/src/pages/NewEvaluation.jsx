@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import Sidebar from '../components/Sidebar'
 import Navbar from '../components/Navbar'
 import { predictCredit } from '../services/api'
@@ -71,7 +72,8 @@ const DEFAULT_FORM = {
   loan_purpose: 'Other',
   loan_amount: '',
   existing_debt: '',
-  credit_score_input: 720,
+  credit_score_input: 650,
+  no_credit_score: false,
 }
 
 const FORM_FIELDS = [
@@ -85,6 +87,7 @@ export default function NewEvaluation() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   const calculateProgress = () => {
     const filled = FORM_FIELDS.filter(field => !!form[field]).length
@@ -119,7 +122,8 @@ export default function NewEvaluation() {
         loan_purpose: form.loan_purpose,
         loan_amount: Number(String(form.loan_amount).replace(/,/g, '')),
         existing_debt: Number(String(form.existing_debt).replace(/,/g, '')),
-        credit_score_input: Number(form.credit_score_input),
+        credit_score_input: form.no_credit_score ? null : Number(form.credit_score_input),
+        language: localStorage.getItem('language') || 'en',
       }
       const data = await predictCredit(payload)
 
@@ -141,7 +145,7 @@ export default function NewEvaluation() {
       <main className="ml-64 p-12 max-w-[1440px] mx-auto">
         <div className="mb-12">
           <h2 className="text-4xl font-extrabold font-headline tracking-tight text-on-surface mb-2">
-            New Credit Evaluation
+            {t('newEvaluation')}
           </h2>
           <p className="text-on-surface-variant font-sans">
             Initiate a deep-layer credit risk assessment. Our AI models curate data points to
@@ -160,16 +164,16 @@ export default function NewEvaluation() {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2 group">
-                    <label className="block text-sm font-semibold text-on-surface font-label ml-1 group-focus-within:text-primary transition-colors">Age</label>
+                    <label className="block text-sm font-semibold text-on-surface font-label ml-1 group-focus-within:text-primary transition-colors">{t('age')}</label>
                     <input name="age" type="number" min="18" max="100" required value={form.age} onChange={handleChange} placeholder="e.g. 34" className="w-full bg-surface border-2 border-transparent rounded-xl p-3.5 text-sm focus:border-primary/20 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-body outline-none hover:border-outline-variant/30" />
                   </div>
                   <div className="space-y-2 group">
                     <label className="flex items-center gap-2 text-sm font-semibold text-on-surface font-label ml-1 group-focus-within:text-primary transition-colors">
-                      Annual Income
+                      {t('annualIncome')}
                       <span className="material-symbols-outlined text-[14px] text-on-surface-variant cursor-help" title="Total gross annual earnings before tax">info</span>
                     </label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">$</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">₹</span>
                       <input name="income" type="text" required value={form.income} onChange={handleChange} placeholder="75,000" className="w-full bg-surface border-2 border-transparent rounded-xl p-3.5 pl-9 text-sm focus:border-primary/20 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-body outline-none hover:border-outline-variant/30" />
                     </div>
                   </div>
@@ -183,13 +187,13 @@ export default function NewEvaluation() {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2 group">
-                    <label className="block text-sm font-semibold text-on-surface font-label ml-1 group-focus-within:text-primary transition-colors">Gender</label>
+                    <label className="block text-sm font-semibold text-on-surface font-label ml-1 group-focus-within:text-primary transition-colors">{t('gender')}</label>
                     <select name="gender" value={form.gender} onChange={handleChange} className="w-full bg-surface border-2 border-transparent rounded-xl p-3.5 text-sm focus:border-primary/20 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-body outline-none appearance-none hover:border-outline-variant/30">
                       {GENDER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                   </div>
                   <div className="space-y-2 group">
-                    <label className="block text-sm font-semibold text-on-surface font-label ml-1 group-focus-within:text-primary transition-colors">Race / Ethnicity</label>
+                    <label className="block text-sm font-semibold text-on-surface font-label ml-1 group-focus-within:text-primary transition-colors">{t('race')}</label>
                     <select name="race" value={form.race} onChange={handleChange} className="w-full bg-surface border-2 border-transparent rounded-xl p-3.5 text-sm focus:border-primary/20 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-body outline-none appearance-none hover:border-outline-variant/30">
                       {RACE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
@@ -216,13 +220,13 @@ export default function NewEvaluation() {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2 group">
-                    <label className="block text-sm font-semibold text-on-surface font-label ml-1 group-focus-within:text-primary transition-colors">Education Level</label>
+                    <label className="block text-sm font-semibold text-on-surface font-label ml-1 group-focus-within:text-primary transition-colors">{t('educationLevel')}</label>
                     <select name="education_level" value={form.education_level} onChange={handleChange} className="w-full bg-surface border-2 border-transparent rounded-xl p-3.5 text-sm focus:border-primary/20 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-body outline-none appearance-none hover:border-outline-variant/30">
                       {EDUCATION_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                   </div>
                   <div className="space-y-2 group">
-                    <label className="block text-sm font-semibold text-on-surface font-label ml-1 group-focus-within:text-primary transition-colors">Employment Type</label>
+                    <label className="block text-sm font-semibold text-on-surface font-label ml-1 group-focus-within:text-primary transition-colors">{t('employmentType')}</label>
                     <select name="employment_type" value={form.employment_type} onChange={handleChange} className="w-full bg-surface border-2 border-transparent rounded-xl p-3.5 text-sm focus:border-primary/20 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-body outline-none appearance-none hover:border-outline-variant/30">
                       {EMPLOYMENT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
@@ -262,22 +266,21 @@ export default function NewEvaluation() {
                   </div>
                   <div className="space-y-2">
                     <label className="flex items-center gap-2 text-sm font-semibold text-on-surface font-label ml-1">
-
-                      Requested Loan Amount
+                      {t('loanAmount')}
                       <span className="material-symbols-outlined text-[14px] text-on-surface-variant cursor-help" title="Principal amount the applicant is seeking">help</span>
                     </label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">$</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">₹</span>
                       <input name="loan_amount" type="text" required value={form.loan_amount} onChange={handleChange} placeholder="250,000" className="w-full bg-surface border-2 border-transparent rounded-xl p-3.5 pl-9 text-sm focus:border-primary/20 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-body outline-none hover:border-outline-variant/30" />
                     </div>
                   </div>
                   <div className="space-y-2 group">
                     <label className="flex items-center gap-2 text-sm font-semibold text-on-surface font-label ml-1 group-focus-within:text-primary transition-colors">
-                      Existing Debt
+                      {t('existingDebt')}
                       <span className="material-symbols-outlined text-[14px] text-on-surface-variant cursor-help" title="Total outstanding liabilities">info</span>
                     </label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">$</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">₹</span>
                       <input name="existing_debt" type="text" required value={form.existing_debt} onChange={handleChange} placeholder="12,400" className="w-full bg-surface border-2 border-transparent rounded-xl p-3.5 pl-9 text-sm focus:border-primary/20 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-body outline-none hover:border-outline-variant/30" />
                     </div>
                   </div>
@@ -287,19 +290,36 @@ export default function NewEvaluation() {
               {/* Credit History */}
               <section>
                 <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant/60 mb-6 font-label">
-                  Historical Data
+                  Credit History
                 </h3>
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-on-surface font-label ml-1">
-                    Credit History Score
-                    <span className="material-symbols-outlined text-[14px] text-on-surface-variant cursor-help" title="Internal or standardized credit scoring system value">analytics</span>
+                <div className="space-y-4">
+                  <label className="flex items-center gap-3 p-4 bg-surface border-2 border-transparent rounded-xl cursor-pointer hover:border-primary/10 transition-all">
+                    <input
+                      type="checkbox"
+                      name="no_credit_score"
+                      checked={form.no_credit_score}
+                      onChange={handleChange}
+                      className="w-5 h-5 accent-primary rounded"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-on-surface">I don't have a CIBIL / credit score</p>
+                      <p className="text-xs text-on-surface-variant mt-0.5">If you've never taken a loan or credit card, leave this checked. We'll estimate based on your other details.</p>
+                    </div>
                   </label>
-                  <div className="flex items-center gap-4">
-                    <input name="credit_score_input" type="range" min="300" max="850" value={form.credit_score_input} onChange={handleChange} className="flex-1 accent-primary h-2 bg-surface-container-high rounded-full appearance-none cursor-pointer" />
-                    <span className="bg-primary-fixed text-on-primary-fixed-variant px-3 py-1 rounded-full text-xs font-bold">
-                      {form.credit_score_input}
-                    </span>
-                  </div>
+                  {!form.no_credit_score && (
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-sm font-semibold text-on-surface font-label ml-1">
+                        {t('creditScore')}
+                        <span className="material-symbols-outlined text-[14px] text-on-surface-variant cursor-help" title="Your existing credit score from CIBIL or another bureau (300–850)">analytics</span>
+                      </label>
+                      <div className="flex items-center gap-4">
+                        <input name="credit_score_input" type="range" min="300" max="850" value={form.credit_score_input} onChange={handleChange} className="flex-1 accent-primary h-2 bg-surface-container-high rounded-full appearance-none cursor-pointer" />
+                        <span className="bg-primary-fixed text-on-primary-fixed-variant px-3 py-1 rounded-full text-xs font-bold min-w-[48px] text-center">
+                          {form.credit_score_input}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </section>
 
@@ -323,7 +343,7 @@ export default function NewEvaluation() {
                   ) : (
                     <>
                       <span className="material-symbols-outlined">auto_awesome</span>
-                      Evaluate Credit
+                      {t('submitEvaluation')}
                     </>
                   )}
                 </button>

@@ -11,7 +11,7 @@ import joblib
 import os
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), "Financial_Loan_Access_Dataset.csv")
-OUT_DIR = os.path.dirname(__file__)
+OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "artifacts")
 
 
 def train():

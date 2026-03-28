@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import LanguageSwitcher from './LanguageSwitcher'
 
 export default function Navbar() {
   const email = localStorage.getItem('user_email') || 'Senior Analyst'
@@ -36,6 +37,7 @@ export default function Navbar() {
       </div>
 
       <div className="flex items-center gap-6">
+        <LanguageSwitcher />
         <div className="flex items-center gap-3 pl-4">
           <div className="text-right">
             <p className="text-xs font-bold text-on-surface">{email}</p>

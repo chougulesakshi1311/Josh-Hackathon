@@ -6,8 +6,10 @@ from pymongo import MongoClient
 c = MongoClient(os.environ['MONGODB_URI'])
 d = c.get_default_database()
 
-import model as m_mod
-from explainer import build_explainer, explain
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from core import model as m_mod
+from core.explainer import build_explainer, explain
 from schemas import ApplicantInput
 
 m = m_mod.load_model()

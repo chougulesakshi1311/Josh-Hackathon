@@ -94,6 +94,13 @@ export async function predictCredit(formData) {
   })
 }
 
+export async function reExplain({ formData, feature_importance, decision, score, language }) {
+  return request('/re-explain', {
+    method: 'POST',
+    body: JSON.stringify({ formData, feature_importance, decision, score, language }),
+  })
+}
+
 // ---- Dashboard ----
 
 export async function getDashboard() {
@@ -120,4 +127,13 @@ export async function exportAuditLog(range = '30d') {
 
 export async function getHistory() {
   return request('/history')
+}
+
+// ---- Feedback ----
+
+export async function submitFeedback({ application_id, field, comment }) {
+  return request('/feedback', {
+    method: 'POST',
+    body: JSON.stringify({ application_id, field, comment }),
+  })
 }

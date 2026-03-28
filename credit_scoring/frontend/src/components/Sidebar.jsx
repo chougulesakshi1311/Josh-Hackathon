@@ -1,16 +1,17 @@
 import { NavLink, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { logoutUser } from '../services/api'
-
-const navItems = [
-  { to: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
-  { to: '/evaluation', icon: 'add_chart', label: 'New Evaluation' },
-  { to: '/bias', icon: 'equalizer', label: 'Bias & Fairness' },
-  { to: '/reports', icon: 'description', label: 'Reports' },
-  // { to: '/settings', icon: 'settings', label: 'Settings' },
-]
 
 export default function Sidebar() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
+
+  const navItems = [
+    { to: '/dashboard', icon: 'dashboard', label: t('dashboard') },
+    { to: '/evaluation', icon: 'add_chart', label: t('newEvaluation') },
+    { to: '/bias', icon: 'equalizer', label: t('biasFairness') },
+    { to: '/reports', icon: 'description', label: t('reports') },
+  ]
 
   const handleLogout = () => {
     logoutUser()
@@ -25,7 +26,7 @@ export default function Sidebar() {
           Credit AI
         </h1>
         <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold opacity-60">
-          The Digital Curator
+          {t('tagline')}
         </p>
       </div>
 
@@ -61,7 +62,7 @@ export default function Sidebar() {
           className="w-full flex items-center gap-3 px-4 py-3 text-[#434656] dark:text-slate-400 hover:text-error hover:bg-error-container/20 transition-all duration-300 hover:translate-x-1 rounded-lg font-headline text-sm font-bold group"
         >
           <span className="material-symbols-outlined group-hover:text-error transition-colors">logout</span>
-          <span>Logout</span>
+          <span>{t('logout')}</span>
         </button>
       </div>
     </aside>
