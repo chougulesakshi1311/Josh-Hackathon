@@ -2,7 +2,7 @@
 Pydantic schemas for all API input/output contracts.
 """
 from pydantic import BaseModel, Field
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 
 
 class ApplicantInput(BaseModel):
@@ -42,13 +42,8 @@ class PredictionResponse(BaseModel):
 
 class BiasResponse(BaseModel):
     fairness_score: float
-    bias_detected: bool
-    low_income: float
-    middle_income: float
-    high_income: float
-    gender_gap: Optional[float] = None
-    male_approval: Optional[float] = None
-    female_approval: Optional[float] = None
+    gender: Dict[str, Dict[str, int]]
+    income_groups: List[Dict[str, Any]]
 
 
 class DashboardResponse(BaseModel):

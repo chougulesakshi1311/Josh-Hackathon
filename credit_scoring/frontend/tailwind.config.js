@@ -55,8 +55,9 @@ export default {
       },
       fontFamily: {
         headline: ['Manrope', 'sans-serif'],
-        body: ['Inter', 'sans-serif'],
-        label: ['Inter', 'sans-serif'],
+        sans: ['Manrope', 'sans-serif'],
+        body: ['Manrope', 'sans-serif'],
+        label: ['Manrope', 'sans-serif'],
       },
       borderRadius: {
         DEFAULT: '0.25rem',

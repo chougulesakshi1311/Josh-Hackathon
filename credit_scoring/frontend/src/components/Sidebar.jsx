@@ -37,8 +37,8 @@ export default function Sidebar() {
             to={to}
             className={({ isActive }) =>
               isActive
-                ? 'flex items-center gap-3 px-4 py-3 text-[#0052FF] dark:text-blue-400 font-bold bg-[#ffffff] dark:bg-slate-800 rounded-lg shadow-sm font-headline text-sm tracking-tight'
-                : 'flex items-center gap-3 px-4 py-3 text-[#434656] dark:text-slate-400 hover:text-[#191c1d] hover:bg-[#e7e8e9] dark:hover:bg-slate-800 transition-colors duration-200 font-headline text-sm font-semibold tracking-tight rounded-lg'
+                ? 'flex items-center gap-3 px-4 py-3 text-[#0052FF] dark:text-blue-400 font-extrabold bg-[#ffffff] dark:bg-slate-800 rounded-lg shadow-sm font-headline text-sm tracking-tighter transform scale-[1.02] transition-all duration-300'
+                : 'flex items-center gap-3 px-4 py-3 text-[#434656] dark:text-slate-400 hover:text-[#191c1d] hover:bg-[#e7e8e9] dark:hover:bg-slate-800 transition-all duration-300 hover:translate-x-1 font-headline text-sm font-bold tracking-tighter rounded-lg'
             }
           >
             <span className="material-symbols-outlined">{icon}</span>
@@ -58,9 +58,9 @@ export default function Sidebar() {
         </a> */}
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 text-[#434656] dark:text-slate-400 hover:text-[#191c1d] hover:bg-[#e7e8e9] transition-colors rounded-lg font-headline text-sm font-semibold"
+          className="w-full flex items-center gap-3 px-4 py-3 text-[#434656] dark:text-slate-400 hover:text-error hover:bg-error-container/20 transition-all duration-300 hover:translate-x-1 rounded-lg font-headline text-sm font-bold group"
         >
-          <span className="material-symbols-outlined">logout</span>
+          <span className="material-symbols-outlined group-hover:text-error transition-colors">logout</span>
           <span>Logout</span>
         </button>
       </div>

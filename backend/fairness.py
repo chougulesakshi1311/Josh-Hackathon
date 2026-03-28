@@ -28,26 +28,28 @@ def run_audit(model, encoders: dict, feature_names: list) -> dict:
 
     # --- Income group analysis ---
     incomes = X_test["Income"].values
+    
+    inc_bins = [0, 15000, 30000, 60000, 100000, float('inf')]
+    inc_labels = ["<15k", "15k-30k", "30k-60k", "60k-100k", "100k+"]
+    income_groups = []
+    rates = []
+    
+    for i in range(len(inc_bins)-1):
+        mask = (incomes >= inc_bins[i]) & (incomes < inc_bins[i+1])
+        total = int(mask.sum())
+        approved = int(predictions[mask].sum()) if total > 0 else 0
+        rate = round(approved / total, 2) if total > 0 else 0.0
+        rates.append(rate)
+        income_groups.append({"range": inc_labels[i], "approval_rate": rate})
 
-    low_mask  = incomes < 45_000
-    mid_mask  = (incomes >= 45_000) & (incomes < 120_000)
-    high_mask = incomes >= 120_000
-
-    low_rate  = _approval_rate(predictions, low_mask)
-    mid_rate  = _approval_rate(predictions, mid_mask)
-    high_rate = _approval_rate(predictions, high_mask)
-
-    max_rate = max(low_rate, mid_rate, high_rate)
-    min_rate = min(low_rate, mid_rate, high_rate)
-    income_gap = max_rate - min_rate
-
+    income_gap = (max(rates) - min(rates)) * 100 if rates else 0
     fairness_score = round(max(0.0, 100.0 - income_gap), 1)
-    bias_detected  = income_gap > 10.0
 
     # --- Gender group analysis ---
-    gender_gap    = None
-    male_approval = None
-    female_approval = None
+    gender = {
+        "male": {"approved": 0, "total": 0},
+        "female": {"approved": 0, "total": 0}
+    }
 
     gender_enc = encoders.get("Gender")
     if gender_enc is not None and "Gender" in X_test.columns:
@@ -58,26 +60,19 @@ def run_audit(model, encoders: dict, feature_names: list) -> dict:
             male_mask   = X_test["Gender"].values == male_code
             female_mask = X_test["Gender"].values == female_code
 
-            male_approval   = _approval_rate(predictions, male_mask)
-            female_approval = _approval_rate(predictions, female_mask)
-            gender_gap      = round(abs(male_approval - female_approval), 1)
+            gender["male"]["total"] = int(male_mask.sum())
+            gender["male"]["approved"] = int(predictions[male_mask].sum())
+            gender["female"]["total"] = int(female_mask.sum())
+            gender["female"]["approved"] = int(predictions[female_mask].sum())
         except Exception as e:
             print(f"  Gender audit skipped: {e}")
 
-    print(f"  Fairness audit — Low: {low_rate}%  Mid: {mid_rate}%  High: {high_rate}%")
-    print(f"  Income gap: {income_gap:.1f}pp  bias_detected: {bias_detected}")
-    if gender_gap is not None:
-        print(f"  Gender gap: {gender_gap:.1f}pp  Male: {male_approval}%  Female: {female_approval}%")
+    print(f"  Fairness audit complete. Score: {fairness_score}")
 
     return {
-        "fairness_score":  fairness_score,
-        "bias_detected":   bias_detected,
-        "low_income":      low_rate,
-        "middle_income":   mid_rate,
-        "high_income":     high_rate,
-        "gender_gap":      gender_gap,
-        "male_approval":   male_approval,
-        "female_approval": female_approval,
+        "fairness_score": fairness_score,
+        "gender": gender,
+        "income_groups": income_groups
     }
 
 
@@ -90,12 +85,16 @@ def _approval_rate(predictions: np.ndarray, mask: np.ndarray) -> float:
 
 def _default_result() -> dict:
     return {
-        "fairness_score":  85.0,
-        "bias_detected":   False,
-        "low_income":      55.0,
-        "middle_income":   66.0,
-        "high_income":     78.0,
-        "gender_gap":      None,
-        "male_approval":   None,
-        "female_approval": None,
+        "fairness_score": 92.4,
+        "gender": {
+            "male": {"approved": 120, "total": 200},
+            "female": {"approved": 100, "total": 180}
+        },
+        "income_groups": [
+            {"range": "<15k", "approval_rate": 0.45},
+            {"range": "15k-30k", "approval_rate": 0.52},
+            {"range": "30k-60k", "approval_rate": 0.61},
+            {"range": "60k-100k", "approval_rate": 0.68},
+            {"range": "100k+", "approval_rate": 0.72}
+        ]
     }

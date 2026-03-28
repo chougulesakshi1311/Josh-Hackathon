@@ -1,5 +1,5 @@
 /**
- * API service layer — all backend communication goes through here.
+ * API service layer - all backend communication goes through here.
  * Base URL auto-uses Vite proxy in dev; override VITE_API_URL for production.
  */
 
@@ -13,20 +13,49 @@ async function request(path, options = {}) {
   const token = getToken()
   const email = localStorage.getItem('user_email')
   const headers = {
-    'Content-Type': 'application/json',
+    ...(options.body ? { 'Content-Type': 'application/json' } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(email ? { 'X-User-Email': email } : {}),
     ...options.headers,
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, { ...options, headers })
+  const response = await fetch(`${BASE_URL}${path}`, { ...options, headers })
+  console.debug(`[api] ${options.method || 'GET'} ${path}`, response.status)
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }))
-    throw new Error(err.detail || 'Request failed')
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({ detail: response.statusText }))
+    console.error(`[api] ${path} failed`, errorBody)
+    throw new Error(errorBody.detail || 'Request failed')
   }
 
-  return res.json()
+  const data = await response.json()
+  console.debug(`[api] ${path} response`, data)
+  return data
+}
+
+async function download(path, filenameFallback) {
+  const token = getToken()
+  const email = localStorage.getItem('user_email')
+  const headers = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(email ? { 'X-User-Email': email } : {}),
+  }
+
+  const response = await fetch(`${BASE_URL}${path}`, { headers })
+  console.debug(`[api] download ${path}`, response.status)
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({ detail: response.statusText }))
+    console.error(`[api] download ${path} failed`, errorBody)
+    throw new Error(errorBody.detail || 'Download failed')
+  }
+
+  const blob = await response.blob()
+  const contentDisposition = response.headers.get('content-disposition') || ''
+  const filenameMatch = contentDisposition.match(/filename="?(?<filename>[^"]+)"?/)
+  const filename = filenameMatch?.groups?.filename || filenameFallback
+
+  return { blob, filename }
 }
 
 // ---- Auth ----
@@ -71,10 +100,20 @@ export async function getDashboard() {
   return request('/dashboard')
 }
 
+export async function exportDashboardReport() {
+  return download('/export-report', 'dashboard-report.csv')
+}
+
 // ---- Bias ----
 
-export async function getBias() {
-  return request('/bias')
+export async function getBias(range = '30d') {
+  const search = new URLSearchParams({ range })
+  return request(`/bias-metrics?${search.toString()}`)
+}
+
+export async function exportAuditLog(range = '30d') {
+  const search = new URLSearchParams({ range })
+  return download(`/export-audit-log?${search.toString()}`, `audit-log-${range}.csv`)
 }
 
 // ---- History ----

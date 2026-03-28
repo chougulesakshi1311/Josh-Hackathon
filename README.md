@@ -38,6 +38,9 @@ pip install -r requirements.txt
 
 # Start the FastAPI server
 uvicorn main:app --reload --port 8000
+
+# Compatibility: this also works
+# uvicorn app.main:app --reload --port 8000
 ```
 The API will be available at [http://localhost:8000](http://localhost:8000). You can view the interactive Swagger documentation at [http://localhost:8000/docs](http://localhost:8000/docs).
 

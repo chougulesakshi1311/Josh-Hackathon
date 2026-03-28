@@ -1,5 +1,6 @@
 import { useLocation, Link } from 'react-router-dom'
 import { useState } from 'react'
+import html2pdf from 'html2pdf.js'
 import Sidebar from '../components/Sidebar'
 import Navbar from '../components/Navbar'
 import { predictCredit } from '../services/api'
@@ -25,7 +26,7 @@ export default function Report() {
     )
   }
 
-  const { result, formData } = state
+  const { result, formData, createdAt, reportId } = state
   const [whatIfData, setWhatIfData] = useState(formData)
   const [whatIfResult, setWhatIfResult] = useState(null)
   const [isSimulating, setIsSimulating] = useState(false)
@@ -49,15 +50,27 @@ export default function Report() {
   const strokeOffset = strokeDash - (strokeDash * scorePercent) / 100
 
   const decisionStyle = {
-    Approved: { bg: 'bg-secondary-container/20', border: 'border-secondary-container/30', icon: 'check_circle', iconBg: 'bg-secondary-container', iconColor: 'text-on-secondary-container', textColor: 'text-on-secondary-container' },
-    Review: { bg: 'bg-primary-fixed/30', border: 'border-primary-fixed/50', icon: 'pending', iconBg: 'bg-primary-fixed', iconColor: 'text-primary', textColor: 'text-primary' },
-    Rejected: { bg: 'bg-error-container/20', border: 'border-error-container/30', icon: 'cancel', iconBg: 'bg-error-container', iconColor: 'text-on-error-container', textColor: 'text-on-error-container' },
+    Approved: { bg: 'bg-secondary/10', border: 'border-secondary/30', icon: 'check_circle', iconBg: 'bg-secondary', iconColor: 'text-white', textColor: 'text-secondary' },
+    Review: { bg: 'bg-primary/10', border: 'border-primary/30', icon: 'pending', iconBg: 'bg-primary', iconColor: 'text-white', textColor: 'text-primary' },
+    Rejected: { bg: 'bg-error/10', border: 'border-error/30', icon: 'cancel', iconBg: 'bg-error', iconColor: 'text-white', textColor: 'text-error' },
   }
 
   const ds = decisionStyle[activeResult.decision] || decisionStyle.Review
 
+  const handleExportPDF = () => {
+    const element = document.getElementById('report-content')
+    const opt = {
+      margin: 10,
+      filename: `Evaluation_Report_${reportId ? reportId.slice(-6).toUpperCase() : 'REV-8921'}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    }
+    html2pdf().set(opt).from(element).save()
+  }
+
   return (
-    <div className="bg-surface font-body text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
+    <div className="bg-surface font-sans text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
       <Sidebar />
 
       {/* Top Nav */}
@@ -72,19 +85,25 @@ export default function Report() {
       </header>
 
       <main className="ml-64 p-8 lg:p-12 min-h-screen">
-        <div className="max-w-4xl mx-auto bg-surface-container-lowest p-12 rounded-xl shadow-[0_12px_32px_-4px_rgba(0,76,237,0.06)] print-container">
+        <div id="report-content" className="max-w-4xl mx-auto bg-surface-container-lowest p-12 rounded-xl shadow-[0_12px_32px_-4px_rgba(0,76,237,0.06)] print-container relative">
 
           {/* Report Header */}
           <div className="flex justify-between items-start border-b border-surface-container-high pb-8 mb-8">
             <div>
+              <div id="back-btn" className="mb-4 no-print" data-html2canvas-ignore="true">
+                <Link to="/reports" className="text-sm font-bold text-primary flex items-center gap-1 hover:underline w-fit">
+                  <span className="material-symbols-outlined text-sm">arrow_back</span>
+                  Back to Reports
+                </Link>
+              </div>
               <h2 className="font-headline text-2xl font-extrabold tracking-tight text-on-background">
                 Credit Evaluation Summary
               </h2>
-              <p className="font-mono text-primary font-semibold mt-1">#REV-8921</p>
+              <p className="font-mono text-primary font-semibold mt-1">#{reportId ? reportId.slice(-6).toUpperCase() : 'REV-8921'}</p>
               <div className="mt-4 flex gap-4 text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">
                 <div className="flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-xs">calendar_today</span>
-                  Just Now
+                  {createdAt ? new Date(createdAt + (createdAt.endsWith('Z') ? '' : 'Z')).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }) : 'Just Now'}
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-xs">verified_user</span>
@@ -92,9 +111,9 @@ export default function Report() {
                 </div>
               </div>
             </div>
-            <div className="text-right no-print">
+            <div className="text-right no-print" data-html2canvas-ignore="true">
               <button
-                onClick={() => window.print()}
+                onClick={handleExportPDF}
                 className="bg-primary text-white px-5 py-2.5 rounded-lg font-headline text-sm font-bold flex items-center gap-2 hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-primary/20"
               >
                 <span className="material-symbols-outlined text-sm">download</span>
@@ -109,26 +128,28 @@ export default function Report() {
               <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em] mb-2">
                 Final Credit Score
               </p>
-              <div className="relative flex items-center justify-center">
-                <svg className="w-32 h-32 transform -rotate-90">
-                  <circle className="text-surface-container-high" cx="64" cy="64" fill="transparent" r="58" stroke="currentColor" strokeWidth="8" />
-                  <circle
-                    className={activeResult.decision === 'Rejected' ? 'text-error' : 'text-primary'}
-                    cx="64" cy="64" fill="transparent" r="58"
-                    stroke="currentColor" strokeDasharray={strokeDash} strokeDashoffset={strokeOffset} strokeWidth="8"
-                    style={{ transition: 'stroke-dashoffset 1.5s ease' }}
-                  />
+              <div className="relative flex items-center justify-center w-32 h-32">
+                <svg width="128" height="128" viewBox="0 0 128 128" className="absolute inset-0">
+                  <g transform="rotate(-90 64 64)">
+                    <circle className="text-surface-container-high" cx="64" cy="64" fill="none" r="58" stroke="currentColor" strokeWidth="8" />
+                    <circle
+                      className={activeResult.decision === 'Rejected' ? 'text-error' : 'text-primary'}
+                      cx="64" cy="64" fill="none" r="58"
+                      stroke="currentColor" strokeDasharray={strokeDash} strokeDashoffset={strokeOffset} strokeWidth="8"
+                      style={{ transition: 'stroke-dashoffset 1.5s ease' }}
+                    />
+                  </g>
                 </svg>
-                <span className="absolute font-headline text-4xl font-extrabold text-on-background">{score}</span>
+                <span className="absolute font-headline text-4xl font-extrabold text-on-background z-10">{score}</span>
               </div>
             </div>
 
-            <div className={"md:col-span-2  p-8 rounded-xl flex flex-col justify-center border "}>
+            <div className={`md:col-span-2 p-8 rounded-xl flex flex-col justify-center border transition-all duration-700 ${ds.bg} ${ds.border}`}>
               <div className="flex items-center gap-3 mb-4">
-                <div className={"w-10 h-10 rounded-full  flex items-center justify-center "}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-transform hover:scale-110 ${ds.iconBg} ${ds.iconColor}`}>
                   <span className="material-symbols-outlined">{ds.icon}</span>
                 </div>
-                <h3 className={"font-headline text-2xl font-bold "}>{activeResult.decision}</h3>
+                <h3 className={`font-headline text-3xl font-black ${ds.textColor}`}>{activeResult.decision}</h3>
               </div>
               <p className="text-on-surface-variant text-sm leading-relaxed italic">
                 AI confidence scoring analysis performed based on the provided financial parameters.
@@ -136,13 +157,16 @@ export default function Report() {
               </p>
               <div className="mt-6 flex gap-3 flex-wrap">
                 {activeResult.decision === 'Approved' && (
-                  <><span className="bg-secondary-container px-3 py-1 rounded-full text-[10px] font-bold text-on-secondary-container">Low Risk</span><span className="bg-surface-container-high px-3 py-1 rounded-full text-[10px] font-bold text-on-surface-variant">Standard Rate Apply</span></>
+                  <>
+                    <span className="bg-secondary/15 border border-secondary/40 px-3 py-1.5 rounded-full text-[12px] font-black text-secondary uppercase tracking-[0.1em] shadow-sm">Low Risk Profile</span>
+                    <span className="bg-surface-container-high border border-outline-variant/10 px-3 py-1.5 rounded-full text-[12px] font-black text-on-surface-variant uppercase tracking-[0.1em] shadow-sm">Standard Rate Apply</span>
+                  </>
                 )}
                 {activeResult.decision === 'Rejected' && (
-                  <span className="bg-error-container px-3 py-1 rounded-full text-[10px] font-bold text-on-error-container">High Risk</span>
+                  <span className="bg-error/15 border border-error/40 px-3 py-1.5 rounded-full text-[12px] font-black text-error uppercase tracking-[0.1em] shadow-sm">High Risk Flags Active</span>
                 )}
                 {activeResult.decision === 'Review' && (
-                  <span className="bg-primary-fixed px-3 py-1 rounded-full text-[10px] font-bold text-primary">Manual Review Required</span>
+                  <span className="bg-primary/15 border border-primary/40 px-3 py-1.5 rounded-full text-[12px] font-black text-primary uppercase tracking-[0.1em] shadow-sm">Manual Review Queue</span>
                 )}
               </div>
             </div>
@@ -226,7 +250,7 @@ export default function Report() {
 
           {/* What-If Simulator */}
           {(activeResult.decision === 'Rejected' || activeResult.decision === 'Review') && (
-            <section className="mb-12 no-print">
+            <section className="mb-12 no-print" data-html2canvas-ignore="true">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <span className="w-1 h-5 bg-secondary rounded-full" />
@@ -249,9 +273,9 @@ export default function Report() {
                   Adjust the primary metrics below to simulate a new credit risk evaluation instantly. See exactly what outcomes would result from different scenarios.
                 </p>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
-                  <div className="space-y-4 bg-surface-container-low/50 p-4 rounded-xl border border-outline-variant/5">
-                    <label className="flex justify-between text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10">
+                  <div className="space-y-4 bg-surface px-5 py-6 rounded-2xl border-2 border-transparent hover:border-secondary/10 hover:shadow-lg transition-all duration-300 group">
+                    <label className="flex justify-between text-[11px] font-bold uppercase tracking-wider text-on-surface-variant group-hover:text-secondary transition-colors">
                       <span>Target Income</span>
                       <span className="text-secondary font-mono">${whatIfData.income.toLocaleString()}</span>
                     </label>
@@ -264,8 +288,8 @@ export default function Report() {
                     />
                   </div>
                   
-                  <div className="space-y-4 bg-surface-container-low/50 p-4 rounded-xl border border-outline-variant/5">
-                    <label className="flex justify-between text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+                  <div className="space-y-4 bg-surface px-5 py-6 rounded-2xl border-2 border-transparent hover:border-secondary/10 hover:shadow-lg transition-all duration-300 group">
+                    <label className="flex justify-between text-[11px] font-bold uppercase tracking-wider text-on-surface-variant group-hover:text-secondary transition-colors">
                       <span>Target Request</span>
                       <span className="text-secondary font-mono">${whatIfData.loan_amount.toLocaleString()}</span>
                     </label>
@@ -278,8 +302,8 @@ export default function Report() {
                     />
                   </div>
 
-                  <div className="space-y-4 bg-surface-container-low/50 p-4 rounded-xl border border-outline-variant/5">
-                    <label className="flex justify-between text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+                  <div className="space-y-4 bg-surface px-5 py-6 rounded-2xl border-2 border-transparent hover:border-secondary/10 hover:shadow-lg transition-all duration-300 group">
+                    <label className="flex justify-between text-[11px] font-bold uppercase tracking-wider text-on-surface-variant group-hover:text-secondary transition-colors">
                       <span>Target Score</span>
                       <span className="text-secondary font-mono">{whatIfData.credit_score_input}</span>
                     </label>
@@ -290,6 +314,55 @@ export default function Report() {
                       onChange={(e) => setWhatIfData({ ...whatIfData, credit_score_input: Number(e.target.value) })}
                       className="w-full h-2 bg-surface-container-high rounded-full appearance-none cursor-pointer accent-secondary"
                     />
+                  </div>
+                  
+                  <div className="space-y-4 bg-surface px-5 py-6 rounded-2xl border-2 border-transparent hover:border-secondary/10 hover:shadow-lg transition-all duration-300 group">
+                    <label className="flex justify-between text-[11px] font-bold uppercase tracking-wider text-on-surface-variant group-hover:text-secondary transition-colors">
+                      <span>Existing Debt</span>
+                      <span className="text-secondary font-mono">${whatIfData.existing_debt.toLocaleString()}</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="0" max="250000" step="1000"
+                      value={whatIfData.existing_debt}
+                      onChange={(e) => setWhatIfData({ ...whatIfData, existing_debt: Number(e.target.value) })}
+                      className="w-full h-2 bg-surface-container-high rounded-full appearance-none cursor-pointer accent-secondary"
+                    />
+                  </div>
+
+                  <div className="space-y-4 bg-surface px-5 py-6 rounded-2xl border-2 border-transparent hover:border-secondary/10 hover:shadow-lg transition-all duration-300 group">
+                    <label className="flex justify-between text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1 group-focus-within:text-secondary transition-colors">
+                      <span>Employment</span>
+                    </label>
+                    <select
+                      value={whatIfData.employment_type}
+                      onChange={(e) => setWhatIfData({ ...whatIfData, employment_type: e.target.value })}
+                      className="w-full bg-surface-container-lowest border-2 border-transparent hover:border-outline-variant/30 font-bold block rounded-xl px-3 text-xs focus:border-secondary/20 focus:bg-white focus:ring-4 focus:ring-secondary/5 outline-none text-on-surface transition-all"
+                      style={{ height: '40px' }}
+                    >
+                      <option value="Full-time">Full-time Professional</option>
+                      <option value="Part-time">Part-time Employment</option>
+                      <option value="Self-employed">Independent Freelance</option>
+                      <option value="Unemployed">Currently Unemployed</option>
+                      <option value="Gig">Gig Worker</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-4 bg-surface px-5 py-6 rounded-2xl border-2 border-transparent hover:border-secondary/10 hover:shadow-lg transition-all duration-300 group">
+                    <label className="flex justify-between text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1 group-focus-within:text-secondary transition-colors">
+                      <span>Education Level</span>
+                    </label>
+                    <select
+                      value={whatIfData.education_level}
+                      onChange={(e) => setWhatIfData({ ...whatIfData, education_level: e.target.value })}
+                      className="w-full bg-surface-container-lowest border-2 border-transparent hover:border-outline-variant/30 font-bold block rounded-xl px-3 text-xs focus:border-secondary/20 focus:bg-white focus:ring-4 focus:ring-secondary/5 outline-none text-on-surface transition-all"
+                      style={{ height: '40px' }}
+                    >
+                      <option value="High School">High School</option>
+                      <option value="Some College">Some College</option>
+                      <option value="Bachelor's">Bachelor's Degree</option>
+                      <option value="Graduate">Graduate Degree</option>
+                    </select>
                   </div>
                 </div>
                 
@@ -347,32 +420,34 @@ export default function Report() {
               </div>
 
               {/* Peer Benchmarking */}
-              <div className="bg-surface-container p-5 rounded-xl flex flex-col items-center justify-center">
-                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-4 w-full text-left">
+              <div className="bg-surface-container p-5 rounded-xl flex flex-col items-start justify-start h-full">
+                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest w-full text-left">
                   Peer Benchmarking
                 </p>
-                <div className="flex items-end gap-2 h-24 w-full">
-                  {[8, 16, 24, 20, 12, 6].map((h, i) => {
-                    const mappedTier = Math.floor((score - 300) / 100)
-                    const isUserTier = mappedTier === i || (i === 5 && mappedTier >= 5)
-                    return (
-                      <div
-                        key={i}
-                        className={`flex-1 rounded-t-sm ${isUserTier ? 'bg-primary relative' : 'bg-surface-container-high opacity-50'}`}
-                        style={{ height: `${h * 4}px` }}
-                      >
-                        {isUserTier && (
-                          <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-primary">
-                            YOU
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-                <div className="flex justify-between w-full mt-2 text-[8px] font-bold text-on-surface-variant uppercase">
-                  <span>Low Score</span>
-                  <span>High Score</span>
+                <div className="w-full my-auto flex flex-col items-center">
+                  <div className="flex items-end gap-2 h-24 w-full">
+                    {[8, 16, 24, 20, 12, 6].map((h, i) => {
+                      const mappedTier = Math.floor((score - 300) / 100)
+                      const isUserTier = mappedTier === i || (i === 5 && mappedTier >= 5)
+                      return (
+                        <div
+                          key={i}
+                          className={`flex-1 rounded-t-sm transition-all ${isUserTier ? 'bg-primary relative shadow-md z-10' : 'bg-gray-300 dark:bg-slate-700'}`}
+                          style={{ height: `${h * 4}px` }}
+                        >
+                          {isUserTier && (
+                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-extrabold text-primary">
+                              YOU
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div className="flex justify-between w-full mt-3 text-[8px] font-bold text-on-surface-variant uppercase">
+                    <span>Low Score</span>
+                    <span>High Score</span>
+                  </div>
                 </div>
               </div>
             </div>
